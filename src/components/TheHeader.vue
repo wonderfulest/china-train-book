@@ -36,8 +36,6 @@
             <el-option label="English" value="en" />
             <el-option label="简体中文" value="zh" />
           </el-select>
-          <el-button type="text">Sign In</el-button>
-          <el-button type="primary">Register</el-button>
         </div>
       </nav>
     </div>

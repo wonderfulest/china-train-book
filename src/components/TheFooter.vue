@@ -12,7 +12,7 @@
             <li><router-link to="/about">About</router-link></li>
             <li><router-link to="/contact">Contact</router-link></li>
             <li><router-link to="/faq">FAQ</router-link></li>
-            <li><router-link to="/terms">Terms & Conditions</router-link></li>
+            <li><router-link to="/terms-conditions">Terms & Conditions</router-link></li>
           </ul>
         </div>
         <div class="footer-section">
