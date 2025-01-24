@@ -200,7 +200,7 @@ const toStation = ref(null)
 onMounted(async () => {
   try {
     // Fetch all cities
-    const response = await axios.post('http://localhost:8080/train/getAllCity', {})
+    const response = await axios.post('http://47.97.4.185/train-api/train/getAllCity', {})
     cities.value = response.data.result.stations.map(station => ({
       name: station.name,
       stationCode: station.stationCode,
@@ -209,7 +209,7 @@ onMounted(async () => {
     }))
     
     // Fetch hot cities
-    const hotResponse = await axios.post('http://localhost:8080/train/getHotCity', {})
+    const hotResponse = await axios.post('http://47.97.4.185/train-api/train/getHotCity', {})
     console.log(hotResponse.data.result.stations[0])
 
     hotCities.value = hotResponse.data.result.stations.map(station => ({
@@ -328,18 +328,8 @@ const handleSearch = () => {
   router.push({
     path: '/search',
     query: {
-      from: {
-        name: from.value,
-        stationCode: fromStation.value?.stationCode,
-        pingYin: fromStation.value?.pingYin,
-        pingYinShort: fromStation.value?.pingYinShort
-      },
-      to: {
-        name: to.value,
-        stationCode: toStation.value?.stationCode,
-        pingYin: toStation.value?.pingYin,
-        pingYinShort: toStation.value?.pingYinShort
-      },
+      from: fromStation.value?.stationCode,
+      to: toStation.value?.stationCode,
       date: date.value
     }
   })

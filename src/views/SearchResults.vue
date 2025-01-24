@@ -5,12 +5,14 @@
         <div class="param">
           <label>From</label>
           <el-autocomplete
+            id="from-search"
             v-model="from"
             :fetch-suggestions="querySearch"
             placeholder="Enter departure city"
             class="full-width"
             :trigger-on-focus="false"
             clearable
+            @select="handleSelect"
           >
             <template #prefix>
               <el-icon><Location /></el-icon>
@@ -21,12 +23,14 @@
         <div class="param">
           <label>To</label>
           <el-autocomplete
+            id="to-search"
             v-model="to"
             :fetch-suggestions="querySearch"
             placeholder="Enter destination city"
             class="full-width"
             :trigger-on-focus="false"
             clearable
+            @select="handleSelect"
           >
             <template #prefix>
               <el-icon><Location /></el-icon>
@@ -42,6 +46,9 @@
             :disabled-date="disabledDate"
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
+            :shortcuts="dateShortcuts"
+            :size="'large'"
+            style="width: 100%"
           />
         </div>
         <el-button type="primary" class="search-btn" @click="searchTrains">Search</el-button>
@@ -150,7 +157,9 @@ const route = useRoute()
 const router = useRouter()
 const from = ref('')
 const to = ref('')
-const date = ref(new Date())
+const fromStation = ref(null)
+const toStation = ref(null)
+const date = ref('')  // 改为字符串类型
 const trainType = ref('')
 const departTime = ref('')
 const departStation = ref('')
@@ -158,12 +167,86 @@ const trains = ref([])
 const loading = ref(false)
 const cities = ref([])
 
+const dateShortcuts = [
+  {
+    text: 'Today',
+    value: new Date()
+  },
+  {
+    text: 'Tomorrow',
+    value: () => {
+      const date = new Date()
+      date.setTime(date.getTime() + 3600 * 1000 * 24)
+      return date
+    }
+  },
+  {
+    text: 'A week later',
+    value: () => {
+      const date = new Date()
+      date.setTime(date.getTime() + 3600 * 1000 * 24 * 7)
+      return date
+    }
+  }
+]
+
+const disabledDate = (time) => {
+  return time.getTime() < Date.now() - 8.64e7 || time.getTime() > Date.now() + 8.64e7 * 30 // 禁用今天之前和30天后的日期
+}
+
 onMounted(async () => {
   try {
-    const response = await axios.get('http://localhost:3000/stations')
-    cities.value = response.data
+    // 获取所有车站信息
+    const response = await axios.post('http://47.97.4.185/train-api/train/getAllCity', {})
+    cities.value = response.data.result.stations.map(station => ({
+      value: station.name,
+      stationCode: station.stationCode,
+      pinyin: station.pingYin,
+      pinyinShort: station.pingYinShort
+    }))
+
+    // 如果URL中有参数，查找对应的车站信息
+    const { from: fromCode, to: toCode, date: dateStr } = route.query
+    
+    if (fromCode) {
+      const station = cities.value.find(c => c.stationCode === fromCode)
+      if (station) {
+        fromStation.value = station
+        from.value = station.value
+      }
+    }
+    
+    if (toCode) {
+      const station = cities.value.find(c => c.stationCode === toCode)
+      if (station) {
+        toStation.value = station
+        to.value = station.value
+      }
+    }
+    
+    if (dateStr) {
+      try {
+        // 将日期字符串解析为 YYYY-MM-DD 格式
+        const parsedDate = new Date(dateStr)
+        if (!isNaN(parsedDate.getTime())) {
+          date.value = parsedDate.toISOString().split('T')[0]
+        } else {
+          date.value = new Date().toISOString().split('T')[0]
+        }
+      } catch {
+        date.value = new Date().toISOString().split('T')[0]
+      }
+    } else {
+      date.value = new Date().toISOString().split('T')[0]
+    }
+
+    // 如果有完整的查询参数，自动搜索
+    if (fromStation.value && toStation.value && date.value) {
+      searchTrains()
+    }
   } catch (error) {
     console.error('Failed to fetch stations:', error)
+    ElMessage.error('Failed to load station data')
   }
 })
 
@@ -175,63 +258,110 @@ const formatDateTime = (dateStr) => {
   }
 }
 
-const calculateDuration = (departure, arrival) => {
-  const start = new Date(departure)
-  const end = new Date(arrival)
-  const diff = end - start
-  const hours = Math.floor(diff / (1000 * 60 * 60))
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-  return `${hours}:${minutes.toString().padStart(2, '0')}`
-}
-
 const searchTrains = async () => {
-  if (!from.value || !to.value || !date.value) {
+  if (!fromStation.value || !toStation.value || !date.value) {
     ElMessage.warning('Please fill in all search fields')
     return
   }
 
-  // Update URL with current search parameters
+  // 更新URL参数
   router.push({
     path: '/search',
     query: {
-      from: from.value,
-      to: to.value,
+      from: fromStation.value.stationCode,
+      to: toStation.value.stationCode,
       date: date.value
     }
   })
 
   loading.value = true
   try {
-    const formattedDate = typeof date.value === 'string' ? date.value : date.value.toISOString().split('T')[0]
-    const response = await axios.get(`http://localhost:3000/trains/search`, {
-      params: {
-        departureStation: from.value,
-        arrivalStation: to.value,
-        departureDate: formattedDate
+    const response = await axios.post('http://47.97.4.185/train-api/train/getTicketList', {
+      FromStationCode: fromStation.value.stationCode,
+      ToStationCode: toStation.value.stationCode,
+      FromDate: date.value,
+      IsStudent: false
+    })
+    console.log(response)
+
+    // 转换API响应以匹配UI格式
+    trains.value = response.data.result.tickets.map(train => {
+      // 处理座位信息
+      const seats = []
+      if (train.swzPrice) {
+        seats.push({
+          type: '商务座',
+          price: train.swzPrice,
+          status: train.swzNum === '有' ? 'Available' : 
+                 train.swzNum === '0' ? 'Sold out' : 
+                 `${train.swzNum} left`,
+          amenities: ['wifi', 'power', 'meal']
+        })
+      }
+      if (train.ydzPrice) {
+        seats.push({
+          type: '一等座',
+          price: train.ydzPrice,
+          status: train.ydzNum === '有' ? 'Available' : 
+                 train.ydzNum === '0' ? 'Sold out' : 
+                 `${train.ydzNum} left`,
+          amenities: ['wifi', 'power']
+        })
+      }
+      if (train.edzPrice) {
+        seats.push({
+          type: '二等座',
+          price: train.edzPrice,
+          status: train.edzNum === '有' ? 'Available' : 
+                 train.edzNum === '0' ? 'Sold out' : 
+                 `${train.edzNum} left`,
+          amenities: ['wifi', 'power']
+        })
+      }
+
+      return {
+        id: train.trainNo,
+        number: train.trainCode,
+        type: train.trainType === 'G' ? 'High-speed G' : 
+              train.trainType === 'D' ? 'High-speed D' : 'Normal K',
+        departTime: train.fromTime,
+        departStation: train.fromStation,
+        duration: train.runTime,
+        arrivalTime: train.toTime,
+        arrivalStation: train.toStation,
+        expanded: false,
+        canBook: train.canBook,
+        seats: seats
       }
     })
 
-    // Transform API response to match our UI format
-    trains.value = response.data.map(train => ({
-      id: train.id,
-      number: train.trainNumber,
-      type: train.trainNumber.startsWith('G') ? 'High-speed G' : 
-            train.trainNumber.startsWith('D') ? 'High-speed D' : 'Normal K',
-      departTime: formatDateTime(train.departureTime).time,
-      departStation: train.departureStation,
-      duration: calculateDuration(train.departureTime, train.arrivalTime),
-      arrivalTime: formatDateTime(train.arrivalTime).time,
-      arrivalStation: train.arrivalStation,
-      expanded: false,
-      seats: [
-        {
-          type: '2nd class seat',
-          price: train.price,
-          status: train.availableSeats > 0 ? `${train.availableSeats} seats left` : 'sold out',
-          amenities: ['wifi', 'power']
+    // 应用筛选条件
+    if (trainType.value) {
+      trains.value = trains.value.filter(train => train.number.startsWith(trainType.value))
+    }
+
+    if (departTime.value) {
+      trains.value = trains.value.filter(train => {
+        const hour = parseInt(train.departTime.split(':')[0])
+        switch (departTime.value) {
+          case 'morning':
+            return hour >= 6 && hour < 12
+          case 'afternoon':
+            return hour >= 12 && hour < 18
+          case 'evening':
+            return hour >= 18 || hour < 6
+          default:
+            return true
         }
-      ]
-    }))
+      })
+    }
+
+    if (departStation.value) {
+      trains.value = trains.value.filter(train => 
+        train.departStation.toLowerCase().includes(departStation.value.toLowerCase())
+      )
+    }
+
   } catch (error) {
     console.error('Error fetching trains:', error)
     ElMessage.error('Failed to fetch train schedules. Please try again.')
@@ -240,10 +370,32 @@ const searchTrains = async () => {
   }
 }
 
+// 添加对筛选条件的监听
+watch([trainType, departTime, departStation], () => {
+  if (trains.value.length > 0) {
+    searchTrains()
+  }
+})
+
+const handleSelect = (item) => {
+  const activeElement = document.activeElement
+  if (activeElement.id === 'from-search') {
+    fromStation.value = item
+    from.value = item.value
+  } else if (activeElement.id === 'to-search') {
+    toStation.value = item
+    to.value = item.value
+  }
+}
+
 const swapLocations = () => {
-  const temp = from.value
+  const tempValue = from.value
   from.value = to.value
-  to.value = temp
+  to.value = tempValue
+
+  const tempStation = { ...fromStation.value }
+  fromStation.value = { ...toStation.value }
+  toStation.value = tempStation
 }
 
 const expandDetails = (train) => {
@@ -262,30 +414,41 @@ const querySearch = (queryString, cb) => {
   cb(results)
 }
 
-const disabledDate = (time) => {
-  return time.getTime() < Date.now() - 8.64e7 // Disable dates before today
-}
-
 // Watch for route query changes
 watch(
   () => route.query,
   (newQuery) => {
     const shouldSearch = Object.keys(newQuery).length > 0
     
-    if (newQuery.from) from.value = newQuery.from
-    if (newQuery.to) to.value = newQuery.to
-    if (newQuery.date) {
-      try {
-        date.value = new Date(newQuery.date)
-        if (isNaN(date.value.getTime())) {
-          date.value = new Date()
-        }
-      } catch {
-        date.value = new Date()
+    if (newQuery.from) {
+      const station = cities.value.find(c => c.stationCode === newQuery.from)
+      if (station) {
+        fromStation.value = station
+        from.value = station.value
       }
     }
     
-    if (shouldSearch && from.value && to.value && date.value) {
+    if (newQuery.to) {
+      const station = cities.value.find(c => c.stationCode === newQuery.to)
+      if (station) {
+        toStation.value = station
+        to.value = station.value
+      }
+    }
+    
+    if (newQuery.date) {
+      try {
+        // 将日期字符串解析为 YYYY-MM-DD 格式
+        const parsedDate = new Date(newQuery.date)
+        if (!isNaN(parsedDate.getTime())) {
+          date.value = parsedDate.toISOString().split('T')[0]
+        }
+      } catch {
+        date.value = new Date().toISOString().split('T')[0]
+      }
+    }
+    
+    if (shouldSearch && fromStation.value && toStation.value && date.value) {
       searchTrains()
     }
   },
