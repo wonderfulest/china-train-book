@@ -4,18 +4,47 @@
       <div class="search-params">
         <div class="param">
           <label>From</label>
-          <el-input v-model="from" placeholder="Shanghai" />
+          <el-autocomplete
+            v-model="from"
+            :fetch-suggestions="querySearch"
+            placeholder="Enter departure city"
+            class="full-width"
+            :trigger-on-focus="false"
+            clearable
+          >
+            <template #prefix>
+              <el-icon><Location /></el-icon>
+            </template>
+          </el-autocomplete>
           <el-icon class="swap-icon" @click="swapLocations"><Switch /></el-icon>
         </div>
         <div class="param">
           <label>To</label>
-          <el-input v-model="to" placeholder="Beijing" />
+          <el-autocomplete
+            v-model="to"
+            :fetch-suggestions="querySearch"
+            placeholder="Enter destination city"
+            class="full-width"
+            :trigger-on-focus="false"
+            clearable
+          >
+            <template #prefix>
+              <el-icon><Location /></el-icon>
+            </template>
+          </el-autocomplete>
         </div>
         <div class="param">
           <label>Date</label>
-          <el-date-picker v-model="date" type="date" placeholder="Select Date" />
+          <el-date-picker 
+            v-model="date" 
+            type="date" 
+            placeholder="Select Date"
+            :disabled-date="disabledDate"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+          />
         </div>
-        <el-button type="primary" class="search-btn" @click="search">Search</el-button>
+        <el-button type="primary" class="search-btn" @click="searchTrains">Search</el-button>
       </div>
       <div class="filters">
         <div class="filter-group">
@@ -48,168 +77,168 @@
     </div>
 
     <div class="results-list">
-      <div class="list-header">
-        <div class="col train">Train</div>
-        <div class="col departure">Departure</div>
-        <div class="col duration">Duration</div>
-        <div class="col arrival">Arrival</div>
-        <div class="col action"></div>
-      </div>
+      <el-empty v-if="!loading && trains.length === 0" description="No trains found" />
+      <el-skeleton v-if="loading" :rows="3" animated />
       
-      <div v-for="train in trains" :key="train.id">
-        <div class="train-item">
-          <div class="col train">
-            <div class="train-number">{{ train.number }}</div>
-            <div class="train-type">{{ train.type }}</div>
-          </div>
-          <div class="col departure">
-            <div class="time">{{ train.departTime }}</div>
-            <div class="station">{{ train.departStation }}</div>
-          </div>
-          <div class="col duration">
-            <div class="duration-time">{{ train.duration }}</div>
-            <div class="duration-line"></div>
-          </div>
-          <div class="col arrival">
-            <div class="time">{{ train.arrivalTime }}</div>
-            <div class="station">{{ train.arrivalStation }}</div>
-          </div>
-          <div class="col action">
-            <el-button type="primary" size="small" @click="expandDetails(train)">
-              {{ train.expanded ? 'Hide' : 'Details' }}
-            </el-button>
-          </div>
+      <template v-if="!loading && trains.length > 0">
+        <div class="list-header">
+          <div class="col train">Train</div>
+          <div class="col departure">Departure</div>
+          <div class="col duration">Duration</div>
+          <div class="col arrival">Arrival</div>
+          <div class="col action"></div>
         </div>
-        <div v-if="train.expanded" class="train-details">
-          <div v-for="seat in train.seats" :key="seat.type" class="seat-detail">
-            <div class="seat-info">
-              <div class="seat-type">{{ seat.type }}</div>
-              <div class="amenities">
-                <img v-for="amenity in seat.amenities" 
-                     :key="amenity"
-                     :src="`/src/assets/amenities/${amenity}.png`" 
-                     :alt="amenity"
-                     class="amenity-icon" />
+        
+        <div v-for="train in trains" :key="train.id">
+          <div class="train-item">
+            <div class="col train">
+              <div class="train-number">{{ train.number }}</div>
+              <div class="train-type">{{ train.type }}</div>
+            </div>
+            <div class="col departure">
+              <div class="time">{{ train.departTime }}</div>
+              <div class="station">{{ train.departStation }}</div>
+            </div>
+            <div class="col duration">
+              <div class="duration-time">{{ train.duration }}</div>
+              <div class="duration-line"></div>
+            </div>
+            <div class="col arrival">
+              <div class="time">{{ train.arrivalTime }}</div>
+              <div class="station">{{ train.arrivalStation }}</div>
+            </div>
+            <div class="col action">
+              <el-button type="primary" size="small" @click="expandDetails(train)">
+                {{ train.expanded ? 'Hide' : 'Details' }}
+              </el-button>
+            </div>
+          </div>
+          <div v-if="train.expanded" class="train-details">
+            <div v-for="seat in train.seats" :key="seat.type" class="seat-detail">
+              <div class="seat-info">
+                <div class="seat-type">{{ seat.type }}</div>
+                <div class="amenities">
+                  <img v-for="amenity in seat.amenities" 
+                       :key="amenity"
+                       :src="`/src/assets/amenities/${amenity}.png`" 
+                       :alt="amenity"
+                       class="amenity-icon" />
+                </div>
+              </div>
+              <div class="seat-status">{{ seat.status }}</div>
+              <div class="seat-price">
+                <span class="currency">USD</span>
+                <span class="amount">{{ seat.price }}</span>
               </div>
             </div>
-            <div class="seat-status">{{ seat.status }}</div>
-            <div class="seat-price">
-              <span class="currency">USD</span>
-              <span class="amount">{{ seat.price }}</span>
-            </div>
           </div>
         </div>
-      </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { Switch } from '@element-plus/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
+import axios from 'axios'
+import { ElMessage } from 'element-plus'
+import { Location } from '@element-plus/icons-vue'
 
-const from = ref('Shanghai')
-const to = ref('Beijing')
+const route = useRoute()
+const router = useRouter()
+const from = ref('')
+const to = ref('')
 const date = ref(new Date())
 const trainType = ref('')
 const departTime = ref('')
 const departStation = ref('')
+const trains = ref([])
+const loading = ref(false)
+const cities = ref([])
 
-const trains = ref([
-  {
-    id: 1,
-    number: 'G104',
-    type: 'High-speed G',
-    departTime: '06:27',
-    departStation: 'Shanghai Hongqiao',
-    duration: '6:45',
-    arrivalTime: '13:12',
-    arrivalStation: 'Beijing South',
-    expanded: false,
-    seats: [
-      {
-        type: '1st class seat',
-        price: 150,
-        status: 'sold out',
-        amenities: ['wifi', 'power', 'meal']
-      },
-      {
-        type: '2nd class seat',
-        price: 90,
-        status: 'sold out',
-        amenities: ['wifi', 'power', 'snack']
-      },
-      {
-        type: 'Business seat',
-        price: 295,
-        status: 'sold out',
-        amenities: ['wifi', 'power', 'meal']
-      }
-    ]
-  },
-  {
-    id: 2,
-    number: 'G102',
-    type: 'High-speed G',
-    departTime: '06:37',
-    departStation: 'Shanghai Hongqiao',
-    duration: '6:01',
-    arrivalTime: '12:38',
-    arrivalStation: 'Beijing South',
-    expanded: false,
-    seats: [
-      {
-        type: '1st class seat',
-        price: 150,
-        status: 'sold out',
-        amenities: ['wifi', 'power', 'meal']
-      },
-      {
-        type: '2nd class seat',
-        price: 90,
-        status: 'sold out',
-        amenities: ['wifi', 'power', 'snack']
-      },
-      {
-        type: 'Business seat',
-        price: 295,
-        status: 'sold out',
-        amenities: ['wifi', 'power', 'meal']
-      }
-    ]
-  },
-  {
-    id: 3,
-    number: 'G2',
-    type: 'High-speed G',
-    departTime: '07:00',
-    departStation: 'Shanghai',
-    duration: '4:36',
-    arrivalTime: '11:36',
-    arrivalStation: 'Beijing South',
-    expanded: false,
-    seats: [
-      {
-        type: '1st class seat',
-        price: 150,
-        status: 'sold out',
-        amenities: ['wifi', 'power', 'meal']
-      },
-      {
-        type: '2nd class seat',
-        price: 90,
-        status: 'sold out',
-        amenities: ['wifi', 'power', 'snack']
-      },
-      {
-        type: 'Business seat',
-        price: 295,
-        status: 'sold out',
-        amenities: ['wifi', 'power', 'meal']
-      }
-    ]
+onMounted(async () => {
+  try {
+    const response = await axios.get('http://localhost:3000/stations')
+    cities.value = response.data
+  } catch (error) {
+    console.error('Failed to fetch stations:', error)
   }
-])
+})
+
+const formatDateTime = (dateStr) => {
+  const date = new Date(dateStr)
+  return {
+    time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+}
+
+const calculateDuration = (departure, arrival) => {
+  const start = new Date(departure)
+  const end = new Date(arrival)
+  const diff = end - start
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  return `${hours}:${minutes.toString().padStart(2, '0')}`
+}
+
+const searchTrains = async () => {
+  if (!from.value || !to.value || !date.value) {
+    ElMessage.warning('Please fill in all search fields')
+    return
+  }
+
+  // Update URL with current search parameters
+  router.push({
+    path: '/search',
+    query: {
+      from: from.value,
+      to: to.value,
+      date: date.value
+    }
+  })
+
+  loading.value = true
+  try {
+    const formattedDate = typeof date.value === 'string' ? date.value : date.value.toISOString().split('T')[0]
+    const response = await axios.get(`http://localhost:3000/trains/search`, {
+      params: {
+        departureStation: from.value,
+        arrivalStation: to.value,
+        departureDate: formattedDate
+      }
+    })
+
+    // Transform API response to match our UI format
+    trains.value = response.data.map(train => ({
+      id: train.id,
+      number: train.trainNumber,
+      type: train.trainNumber.startsWith('G') ? 'High-speed G' : 
+            train.trainNumber.startsWith('D') ? 'High-speed D' : 'Normal K',
+      departTime: formatDateTime(train.departureTime).time,
+      departStation: train.departureStation,
+      duration: calculateDuration(train.departureTime, train.arrivalTime),
+      arrivalTime: formatDateTime(train.arrivalTime).time,
+      arrivalStation: train.arrivalStation,
+      expanded: false,
+      seats: [
+        {
+          type: '2nd class seat',
+          price: train.price,
+          status: train.availableSeats > 0 ? `${train.availableSeats} seats left` : 'sold out',
+          amenities: ['wifi', 'power']
+        }
+      ]
+    }))
+  } catch (error) {
+    console.error('Error fetching trains:', error)
+    ElMessage.error('Failed to fetch train schedules. Please try again.')
+  } finally {
+    loading.value = false
+  }
+}
 
 const swapLocations = () => {
   const temp = from.value
@@ -217,13 +246,51 @@ const swapLocations = () => {
   to.value = temp
 }
 
-const search = () => {
-  // Implement search logic
-}
-
 const expandDetails = (train) => {
   train.expanded = !train.expanded
 }
+
+const querySearch = (queryString, cb) => {
+  const results = queryString
+    ? cities.value.filter(city => {
+        const searchStr = queryString.toLowerCase()
+        return city.value.toLowerCase().includes(searchStr) ||
+               city.pinyin.toLowerCase().replace(/\s+/g, '').includes(searchStr)
+      })
+    : cities.value
+
+  cb(results)
+}
+
+const disabledDate = (time) => {
+  return time.getTime() < Date.now() - 8.64e7 // Disable dates before today
+}
+
+// Watch for route query changes
+watch(
+  () => route.query,
+  (newQuery) => {
+    const shouldSearch = Object.keys(newQuery).length > 0
+    
+    if (newQuery.from) from.value = newQuery.from
+    if (newQuery.to) to.value = newQuery.to
+    if (newQuery.date) {
+      try {
+        date.value = new Date(newQuery.date)
+        if (isNaN(date.value.getTime())) {
+          date.value = new Date()
+        }
+      } catch {
+        date.value = new Date()
+      }
+    }
+    
+    if (shouldSearch && from.value && to.value && date.value) {
+      searchTrains()
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>
@@ -273,21 +340,20 @@ const expandDetails = (train) => {
   padding: 0 32px;
 }
 
-.filters {
-  display: flex;
-  gap: 24px;
+:deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 1px #dcdfe6 inset;
 }
 
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+:deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #c0c4cc inset;
 }
 
-.filter-group label {
-  color: #606266;
-  font-size: 14px;
-  white-space: nowrap;
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #409eff inset !important;
+}
+
+.full-width {
+  width: 100%;
 }
 
 .results-list {

@@ -14,22 +14,34 @@
               <span>Train Tickets</span>
             </div>
           </div>
-          <el-form :model="searchForm" label-position="top" class="search-form">
+          <el-form label-position="top" class="search-form">
             <div class="form-row">
               <el-form-item label="From" class="form-item">
                 <el-autocomplete
-                  v-model="searchForm.from"
+                  v-model="from"
                   :fetch-suggestions="querySearch"
                   placeholder="Enter departure city"
                   class="full-width"
-                  :trigger-on-focus="false"
+                  :trigger-on-focus="true"
+                  popper-class="city-autocomplete"
+                  @focus="handleFocus"
+                  id="from"
                 >
                   <template #prefix>
                     <el-icon><Location /></el-icon>
                   </template>
                   <template #default="{ item }">
-                    <div class="suggestion-item">
-                      <span>{{ item.value }}</span>
+                    <div class="suggestion-group">
+                      <div class="suggestion-group-label">{{ item.label }}</div>
+                      <div class="suggestion-list">
+                        <div v-for="city in item.cities" 
+                             :key="city.stationCode" 
+                             class="suggestion-item"
+                             @click.stop="handleSelect(city)">
+                          <span class="city-pinyin">{{ city.pingYin }}</span>
+                          <span class="city-name">{{ city.name }}</span>
+                        </div>
+                      </div>
                     </div>
                   </template>
                 </el-autocomplete>
@@ -41,18 +53,30 @@
               </div>
               <el-form-item label="To" class="form-item">
                 <el-autocomplete
-                  v-model="searchForm.to"
+                  v-model="to"
                   :fetch-suggestions="querySearch"
                   placeholder="Enter destination city"
                   class="full-width"
-                  :trigger-on-focus="false"
+                  :trigger-on-focus="true"
+                  popper-class="city-autocomplete"
+                  @focus="handleFocus"
+                  id="to"
                 >
                   <template #prefix>
                     <el-icon><Location /></el-icon>
                   </template>
                   <template #default="{ item }">
-                    <div class="suggestion-item">
-                      <span>{{ item.value }}</span>
+                    <div class="suggestion-group">
+                      <div class="suggestion-group-label">{{ item.label }}</div>
+                      <div class="suggestion-list">
+                        <div v-for="city in item.cities" 
+                             :key="city.stationCode" 
+                             class="suggestion-item"
+                             @click.stop="handleSelect(city)">
+                          <span class="city-pinyin">{{ city.pingYin }}</span>
+                          <span class="city-name">{{ city.name }}</span>
+                        </div>
+                      </div>
                     </div>
                   </template>
                 </el-autocomplete>
@@ -60,7 +84,7 @@
             </div>
             <el-form-item label="Departure Date">
               <el-date-picker
-                v-model="searchForm.date"
+                v-model="date"
                 type="date"
                 placeholder="Select date"
                 class="full-width"
@@ -146,7 +170,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Location, 
@@ -157,13 +181,114 @@ import {
   User, 
   Right
 } from '@element-plus/icons-vue'
+import axios from 'axios'
 
 const router = useRouter()
-const searchForm = reactive({
-  from: '',
-  to: '',
-  date: ''
+const from = ref('')
+const to = ref('')
+const date = ref(new Date().toISOString().split('T')[0])
+
+const cities = ref([])
+const hotCities = ref([])
+const pageSize = 6
+const currentPages = ref({})
+const dropdownVisible = ref(false)
+
+const fromStation = ref(null)
+const toStation = ref(null)
+
+onMounted(async () => {
+  try {
+    // Fetch all cities
+    const response = await axios.post('http://localhost:8080/train/getAllCity', {})
+    cities.value = response.data.result.stations.map(station => ({
+      name: station.name,
+      stationCode: station.stationCode,
+      pingYin: station.pingYin,
+      pingYinShort: station.pingYinShort
+    }))
+    
+    // Fetch hot cities
+    const hotResponse = await axios.post('http://localhost:8080/train/getHotCity', {})
+    console.log(hotResponse.data.result.stations[0])
+
+    hotCities.value = hotResponse.data.result.stations.map(station => ({
+      name: station.name,
+      stationCode: station.stationCode,
+      pingYin: station.pingYin,
+      pingYinShort: station.pingYinShort
+    }))
+
+    // Initialize pages
+    currentPages.value = { hot: 1 }
+  } catch (error) {
+    console.error('Failed to fetch stations:', error)
+  }
 })
+
+const querySearch = (queryString, cb) => {
+  if (!queryString) {
+    const suggestions = []
+    
+    // Add hot cities section
+    if (hotCities.value.length > 0) {
+      suggestions.push({
+        label: '热门城市',
+        groupKey: 'hot',
+        cities: hotCities.value
+      })
+    }
+
+    // Group other cities by pinyin first letter
+    const groupedCities = {}
+    cities.value.forEach(city => {
+      const firstLetter = city.pingYin[0].toUpperCase()
+      if (!groupedCities[firstLetter]) {
+        groupedCities[firstLetter] = []
+      }
+      groupedCities[firstLetter].push(city)
+    })
+
+    // Add grouped cities
+    Object.keys(groupedCities).sort().forEach(letter => {
+      suggestions.push({
+        label: letter.toUpperCase(),
+        groupKey: letter,
+        cities: groupedCities[letter]
+      })
+    })
+
+    cb(suggestions)
+  } else {
+    // When searching, filter cities
+    const results = cities.value.filter(city => 
+      city.name.toLowerCase().includes(queryString.toLowerCase()) ||
+      city.pingYin.toLowerCase().includes(queryString.toLowerCase()) ||
+      city.pingYinShort.toLowerCase().includes(queryString.toLowerCase())
+    )
+    
+    if (results.length > 0) {
+      cb([{
+        label: '搜索结果',
+        groupKey: 'search',
+        cities: results,
+        isSearchResult: true
+      }])
+    } else {
+      cb([])
+    }
+  }
+}
+
+const handleFocus = () => {
+  dropdownVisible.value = true
+  querySearch('', (suggestions) => {
+    const dropdown = document.querySelector('.el-autocomplete-suggestion')
+    if (dropdown && dropdown.__vue__) {
+      dropdown.__vue__.suggestions = suggestions
+    }
+  })
+}
 
 const popularRoutes = ref([
   { 
@@ -195,31 +320,6 @@ const popularRoutes = ref([
   }
 ])
 
-const cities = [
-  { value: 'Beijing', pinyin: 'Bei Jing', address: 'Capital of China' },
-  { value: 'Shanghai', pinyin: 'Shang Hai', address: 'Eastern China' },
-  { value: 'Guangzhou', pinyin: 'Guang Zhou', address: 'Southern China' },
-  { value: 'Shenzhen', pinyin: 'Shen Zhen', address: 'Southern China' },
-  { value: 'Xi\'an', pinyin: 'Xi An', address: 'Central China' },
-  { value: 'Chengdu', pinyin: 'Cheng Du', address: 'Southwestern China' },
-  { value: 'Hangzhou', pinyin: 'Hang Zhou', address: 'Eastern China' },
-  { value: 'Suzhou', pinyin: 'Su Zhou', address: 'Eastern China' }
-]
-
-const querySearch = (queryString, cb) => {
-  const results = queryString
-    ? cities.filter(city => {
-        const searchStr = queryString.toLowerCase()
-        return city.value.toLowerCase().includes(searchStr) ||
-               city.pinyin.toLowerCase().includes(searchStr)
-      })
-    : cities
-
-  // Remove duplicates based on value property
-  const uniqueResults = Array.from(new Map(results.map(item => [item.value, item])).values())
-  cb(uniqueResults)
-}
-
 const disabledDate = (time) => {
   return time.getTime() < Date.now() - 8.64e7
 }
@@ -228,24 +328,62 @@ const handleSearch = () => {
   router.push({
     path: '/search',
     query: {
-      from: searchForm.from,
-      to: searchForm.to,
-      date: searchForm.date
+      from: {
+        name: from.value,
+        stationCode: fromStation.value?.stationCode,
+        pingYin: fromStation.value?.pingYin,
+        pingYinShort: fromStation.value?.pingYinShort
+      },
+      to: {
+        name: to.value,
+        stationCode: toStation.value?.stationCode,
+        pingYin: toStation.value?.pingYin,
+        pingYinShort: toStation.value?.pingYinShort
+      },
+      date: date.value
     }
   })
 }
 
 const handleRouteClick = (route) => {
-  searchForm.from = route.from
-  searchForm.to = route.to
-  searchForm.date = new Date().toISOString().split('T')[0]
+  from.value = route.from
+  to.value = route.to
+  date.value = new Date().toISOString().split('T')[0]
   handleSearch()
 }
 
 const exchangeCities = () => {
-  const temp = searchForm.from
-  searchForm.from = searchForm.to
-  searchForm.to = temp
+  // 交换显示值
+  const tempDisplay = from.value
+  from.value = to.value
+  to.value = tempDisplay
+
+  // 交换完整数据
+  const tempStation = { ...fromStation.value }
+  fromStation.value = { ...toStation.value }
+  toStation.value = tempStation
+}
+
+const handleSelect = (item) => {
+  const activeElement = document.activeElement
+  console.log('handleSelect:', item, activeElement.id)
+  if (activeElement.id === 'from') {
+    from.value = item.name
+    fromStation.value = {
+      name: item.name,
+      stationCode: item.stationCode,
+      pingYin: item.pingYin,
+      pingYinShort: item.pingYinShort
+    }
+  } else if (activeElement.id === 'to') {
+    to.value = item.name
+    toStation.value = {
+      name: item.name,
+      stationCode: item.stationCode,
+      pingYin: item.pingYin,
+      pingYinShort: item.pingYinShort
+    }
+  }
 }
 </script>
 
@@ -567,6 +705,66 @@ const exchangeCities = () => {
   color: var(--text-color-secondary);
   font-size: 15px;
   line-height: 1.6;
+}
+
+:deep(.city-autocomplete) {
+  padding: 16px;
+}
+
+:deep(.city-autocomplete .el-scrollbar__view) {
+  padding: 0;
+}
+
+:deep(.city-autocomplete .el-autocomplete-suggestion__wrap) {
+  margin: 0;
+  padding: 0;
+}
+
+:deep(.city-autocomplete .el-autocomplete-suggestion__list) {
+  padding: 0;
+  margin: 0;
+}
+
+.suggestion-group {
+  margin-bottom: 16px;
+}
+
+.suggestion-group-label {
+  padding: 0 16px;
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+.suggestion-list {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  padding: 0 16px;
+}
+
+.suggestion-item {
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.suggestion-item:hover {
+  background-color: var(--el-color-primary-light-9);
+}
+
+.city-pinyin {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.city-name {
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  font-weight: 500;
 }
 
 @media (max-width: 768px) {
