@@ -200,7 +200,7 @@ const toStation = ref(null)
 onMounted(async () => {
   try {
     // Fetch all cities
-    const response = await axios.post('http://47.97.4.185/train-api/train/getAllCity', {})
+    const response = await axios.post('http://api.chinatrainbook.com/train/getAllCity', {})
     cities.value = response.data.result.stations.map(station => ({
       name: station.name,
       stationCode: station.stationCode,
@@ -209,7 +209,7 @@ onMounted(async () => {
     }))
     
     // Fetch hot cities
-    const hotResponse = await axios.post('http://47.97.4.185/train-api/train/getHotCity', {})
+    const hotResponse = await axios.post('http://api.chinatrainbook.com/train/getHotCity', {})
     console.log(hotResponse.data.result.stations[0])
 
     hotCities.value = hotResponse.data.result.stations.map(station => ({
