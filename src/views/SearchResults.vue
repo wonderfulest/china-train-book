@@ -197,7 +197,7 @@ const disabledDate = (time) => {
 onMounted(async () => {
   try {
     // 获取所有车站信息
-    const response = await axios.post('http://api.chinatrainbook.com/train/getAllCity', {})
+    const response = await axios.post('https://api.chinatrainbook.com/train/getAllCity', {})
     cities.value = response.data.result.stations.map(station => ({
       value: station.name,
       stationCode: station.stationCode,
@@ -276,7 +276,7 @@ const searchTrains = async () => {
 
   loading.value = true
   try {
-    const response = await axios.post('http://api.chinatrainbook.com/train/getTicketList', {
+    const response = await axios.post('https://api.chinatrainbook.com/train/getTicketList', {
       FromStationCode: fromStation.value.stationCode,
       ToStationCode: toStation.value.stationCode,
       FromDate: date.value,
