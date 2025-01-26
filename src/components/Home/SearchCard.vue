@@ -35,8 +35,7 @@
                        :key="city.stationCode" 
                        class="suggestion-item"
                        @click.stop="handleSelect(city)">
-                    <span class="city-pinyin">{{ city.pingYin }}</span>
-                    <span class="city-name">{{ city.name }}</span>
+                    <span v-html="city.displayPinyin"></span>
                   </div>
                 </div>
               </div>
@@ -70,8 +69,7 @@
                        :key="city.stationCode" 
                        class="suggestion-item"
                        @click.stop="handleSelect(city)">
-                    <span class="city-pinyin">{{ city.pingYin }}</span>
-                    <span class="city-name">{{ city.name }}</span>
+                    <span v-html="city.displayPinyin"></span>
                   </div>
                 </div>
               </div>
@@ -113,6 +111,27 @@ const cities = ref([])
 const hotCities = ref([])
 const fromStation = ref(null)
 const toStation = ref(null)
+const searchQuery = ref('')
+
+// 高亮匹配文本的函数
+const highlightMatch = (text, query) => {
+  if (!query) return text
+  
+  // 转换为小写进行匹配
+  const lowerText = text.toLowerCase()
+  const lowerQuery = query.toLowerCase()
+  
+  // 如果没有匹配到，直接返回原文本
+  const index = lowerText.indexOf(lowerQuery)
+  if (index === -1) return text
+  
+  // 保持原文本的大小写，只添加高亮样式
+  const before = text.slice(0, index)
+  const match = text.slice(index, index + query.length)
+  const after = text.slice(index + query.length)
+  console.log(before, match, after)
+  return before + `<span class="highlight">${match}</span>` + after
+}
 
 const disabledDate = (time) => {
   return time.getTime() < Date.now() - 8.64e7 || time.getTime() > Date.now() + 8.64e7 * 30
@@ -138,10 +157,10 @@ const handleSelect = (item) => {
   const activeElement = document.activeElement
   if (activeElement.id === 'from') {
     fromStation.value = item
-    from.value = item.name
+    from.value = item.pingYin
   } else if (activeElement.id === 'to') {
     toStation.value = item
-    to.value = item.name
+    to.value = item.pingYin
   }
 }
 
@@ -156,14 +175,19 @@ const exchangeCities = () => {
 }
 
 const querySearch = (queryString, cb) => {
+  searchQuery.value = queryString
   if (!queryString) {
     const suggestions = []
     
     // Add hot cities section
     if (hotCities.value.length > 0) {
       suggestions.push({
-        label: '热门城市',
-        cities: hotCities.value
+        label: 'Hot Cities',
+        cities: hotCities.value.map(city => ({
+          ...city,
+          pingYin: city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase(),
+          displayPinyin: city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase()
+        }))
       })
     }
 
@@ -174,7 +198,12 @@ const querySearch = (queryString, cb) => {
       if (!groupedCities[firstLetter]) {
         groupedCities[firstLetter] = []
       }
-      groupedCities[firstLetter].push(city)
+      const formattedPinyin = city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase()
+      groupedCities[firstLetter].push({
+        ...city,
+        pingYin: formattedPinyin,
+        displayPinyin: formattedPinyin
+      })
     })
 
     // Add grouped cities
@@ -189,10 +218,18 @@ const querySearch = (queryString, cb) => {
 
     cb(suggestions)
   } else {
+    const searchStr = queryString.toLowerCase()
     const results = cities.value.filter(city => {
-      return city.name.toLowerCase().includes(queryString.toLowerCase()) ||
-             city.pingYin.toLowerCase().includes(queryString.toLowerCase()) ||
-             city.pingYinShort.toLowerCase().includes(queryString.toLowerCase())
+      return city.name.toLowerCase().includes(searchStr) ||
+             city.pingYin.toLowerCase().includes(searchStr) ||
+             city.pingYinShort.toLowerCase().includes(searchStr)
+    }).map(city => {
+      const formattedPinyin = city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase()
+      return {
+        ...city,
+        pingYin: formattedPinyin,
+        displayPinyin: highlightMatch(formattedPinyin, queryString)
+      }
     })
 
     cb([{ label: 'Search Results', cities: results }])
@@ -381,41 +418,34 @@ const handleFocus = async () => {
 }
 
 .suggestion-group-label {
-  padding: 0 16px;
+  padding: 8px 16px;
   font-size: 14px;
   color: #999;
-  margin-bottom: 8px;
+  background-color: #f5f7fa;
 }
 
 .suggestion-list {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
-  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
 }
 
 .suggestion-item {
   cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  padding: 8px 16px;
+  display: block;
+  color: var(--el-text-color-primary);
+  font-size: 14px;
 }
 
 .suggestion-item:hover {
   background-color: var(--el-color-primary-light-9);
 }
 
-.city-pinyin {
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-}
-
-.city-name {
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-  font-weight: 500;
+:deep(.highlight) {
+  font-weight: bold !important;
+  text-decoration: underline !important;
 }
 
 @media (max-width: 768px) {
