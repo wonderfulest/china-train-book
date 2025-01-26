@@ -430,7 +430,7 @@ const handleSelect = (item) => {
 
 .search-container {
   width: 100%;
-  max-width: 1000px;
+  max-width: 800px;
   position: relative;
   z-index: 1;
   padding: 0 24px;
@@ -827,5 +827,9 @@ const handleSelect = (item) => {
     transform: scale(1.05);
     transition: transform 0.4s ease;
   }
+}
+
+:deep(.el-card__body) {
+  padding: 0;
 }
 </style>

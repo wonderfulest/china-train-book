@@ -48,7 +48,7 @@
           <div class="payment-icons">
             <img src="../assets/payments/visa.png" alt="Visa" class="payment-icon">
             <img src="../assets/payments/mastercard.png" alt="Mastercard" class="payment-icon">
-            <img src="https://www.paypalobjects.com/marketing/web/logos/paypal-mark-color.svg" alt="PayPal" class="payment-icon">
+            <img src="../assets/payments/paypal-mark-color.svg" alt="PayPal" class="payment-icon">
             <img src="../assets/payments/jcb.png" alt="JCB" class="payment-icon">
           </div>
         </div>
