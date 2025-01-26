@@ -147,11 +147,10 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { Switch } from '@element-plus/icons-vue'
+import { Switch, Location } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import { Location } from '@element-plus/icons-vue'
+import { getAllCity, getTicketList } from '@/api/modules/train'
 
 const route = useRoute()
 const router = useRouter()
@@ -197,8 +196,8 @@ const disabledDate = (time) => {
 onMounted(async () => {
   try {
     // 获取所有车站信息
-    const response = await axios.post('https://api.chinatrainbook.com/train/getAllCity', {})
-    cities.value = response.data.result.stations.map(station => ({
+    const response = await getAllCity()
+    cities.value = response.result.stations.map(station => ({
       value: station.name,
       stationCode: station.stationCode,
       pinyin: station.pingYin,
@@ -276,16 +275,15 @@ const searchTrains = async () => {
 
   loading.value = true
   try {
-    const response = await axios.post('https://api.chinatrainbook.com/train/getTicketList', {
-      FromStationCode: fromStation.value.stationCode,
-      ToStationCode: toStation.value.stationCode,
-      FromDate: date.value,
-      IsStudent: false
+    const response = await getTicketList({
+      fromStationCode: fromStation.value.stationCode,
+      toStationCode: toStation.value.stationCode,
+      fromDate: date.value,
+      isStudent: false
     })
-    console.log(response)
 
     // 转换API响应以匹配UI格式
-    trains.value = response.data.result.tickets.map(train => {
+    trains.value = response.result.tickets.map(train => {
       // 处理座位信息
       const seats = []
       if (train.swzPrice) {

@@ -181,7 +181,7 @@ import {
   User, 
   Right
 } from '@element-plus/icons-vue'
-import axios from 'axios'
+import { getAllCity, getHotCity } from '@/api/modules/train'
 
 const router = useRouter()
 const from = ref('')
@@ -199,20 +199,18 @@ const toStation = ref(null)
 
 onMounted(async () => {
   try {
-    // Fetch all cities
-    const response = await axios.post('https://api.chinatrainbook.com/train/getAllCity', {})
-    cities.value = response.data.result.stations.map(station => ({
+    // 获取所有城市
+    const response = await getAllCity()
+    cities.value = response.result.stations.map(station => ({
       name: station.name,
       stationCode: station.stationCode,
       pingYin: station.pingYin,
       pingYinShort: station.pingYinShort
     }))
     
-    // Fetch hot cities
-    const hotResponse = await axios.post('https://api.chinatrainbook.com/train/getHotCity', {})
-    console.log(hotResponse.data.result.stations[0])
-
-    hotCities.value = hotResponse.data.result.stations.map(station => ({
+    // 获取热门城市
+    const hotResponse = await getHotCity()
+    hotCities.value = hotResponse.result.stations.map(station => ({
       name: station.name,
       stationCode: station.stationCode,
       pingYin: station.pingYin,
