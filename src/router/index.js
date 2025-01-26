@@ -13,6 +13,8 @@ import Flights from '../views/Flights.vue'
 import ChinaTrainGuide from '../views/ChinaTrainGuide.vue'
 import BookingGuide from '../views/BookingGuide.vue'
 import ChinaEsim from '../views/ChinaEsim.vue'
+import CreateOrder from '../views/CreateOrder.vue'
+import OrderList from '../views/OrderList.vue'
 import NotFound from '../views/NotFound.vue'
 
 const routes = [
@@ -80,6 +82,21 @@ const routes = [
     path: '/china-esim',
     name: 'ChinaEsim',
     component: ChinaEsim
+  },
+  {
+    path: '/create-order',
+    name: 'CreateOrder',
+    component: CreateOrder
+  },
+  {
+    path: '/trains/order',
+    name: 'order',
+    component: () => import('../views/CreateOrder.vue')
+  },
+  {
+    path: '/trains/order/list',
+    name: 'orderList',
+    component: () => import('../views/OrderList.vue')
   },
   // 404 catch-all route
   {

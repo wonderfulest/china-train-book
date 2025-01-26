@@ -10,14 +10,29 @@
             :fetch-suggestions="querySearch"
             placeholder="Enter departure city"
             class="full-width"
-            :trigger-on-focus="false"
-            clearable
+            :trigger-on-focus="true"
+            popper-class="city-autocomplete"
             @select="handleSelect"
           >
             <template #prefix>
               <el-icon><Location /></el-icon>
             </template>
+            <template #default="{ item }">
+              <div class="suggestion-group">
+                <div class="suggestion-group-label">{{ item.label }}</div>
+                <div class="suggestion-list">
+                  <div v-for="city in item.cities" 
+                       :key="city.stationCode" 
+                       class="suggestion-item"
+                       @click.stop="handleSelect(city)">
+                    <span v-html="city.displayPinyin"></span>
+                  </div>
+                </div>
+              </div>
+            </template>
           </el-autocomplete>
+        </div>
+        <div class="exchange-button">
           <el-icon class="swap-icon" @click="swapLocations"><Switch /></el-icon>
         </div>
         <div class="param">
@@ -28,12 +43,25 @@
             :fetch-suggestions="querySearch"
             placeholder="Enter destination city"
             class="full-width"
-            :trigger-on-focus="false"
-            clearable
+            :trigger-on-focus="true"
+            popper-class="city-autocomplete"
             @select="handleSelect"
           >
             <template #prefix>
               <el-icon><Location /></el-icon>
+            </template>
+            <template #default="{ item }">
+              <div class="suggestion-group">
+                <div class="suggestion-group-label">{{ item.label }}</div>
+                <div class="suggestion-list">
+                  <div v-for="city in item.cities" 
+                       :key="city.stationCode" 
+                       class="suggestion-item"
+                       @click.stop="handleSelect(city)">
+                    <span v-html="city.displayPinyin"></span>
+                  </div>
+                </div>
+              </div>
             </template>
           </el-autocomplete>
         </div>
@@ -47,7 +75,6 @@
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
             :shortcuts="dateShortcuts"
-            :size="'large'"
             style="width: 100%"
           />
         </div>
@@ -56,7 +83,7 @@
       <div class="filters">
         <div class="filter-group">
           <label>Train Type:</label>
-          <el-select v-model="trainType" placeholder="All Trains">
+          <el-select v-model="trainType" placeholder="All Trains" class="filter-select">
             <el-option label="All Trains" value="" />
             <el-option label="High Speed G" value="G" />
             <el-option label="High Speed D" value="D" />
@@ -65,7 +92,7 @@
         </div>
         <div class="filter-group">
           <label>Depart Times:</label>
-          <el-select v-model="departTime" placeholder="All Times">
+          <el-select v-model="departTime" placeholder="All Times" class="filter-select">
             <el-option label="All Times" value="" />
             <el-option label="Morning (6:00-12:00)" value="morning" />
             <el-option label="Afternoon (12:00-18:00)" value="afternoon" />
@@ -74,7 +101,7 @@
         </div>
         <div class="filter-group">
           <label>Depart Stations:</label>
-          <el-select v-model="departStation" placeholder="All Stations">
+          <el-select v-model="departStation" placeholder="All Stations" class="filter-select">
             <el-option label="All Stations" value="" />
             <el-option label="Shanghai Hongqiao" value="hongqiao" />
             <el-option label="Shanghai" value="shanghai" />
@@ -133,9 +160,9 @@
                 </div>
               </div>
               <div class="seat-status">{{ seat.status }}</div>
-              <div class="seat-price">
+              <div class="seat-price" @click="goToCreateOrder(train, seat)" style="cursor: pointer">
                 <span class="currency">USD</span>
-                <span class="amount">{{ seat.price }}</span>
+                <span class="amount">{{ convertToUSD(seat.price) }}</span>
               </div>
             </div>
           </div>
@@ -150,7 +177,8 @@ import { ref, onMounted, watch } from 'vue'
 import { Switch, Location } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getAllCity, getTicketList } from '@/api/modules/train'
+import { getAllCity, getTicketList, getHotCity } from '@/api/modules/train'
+import { getExchangeRate } from '@/api/modules/exchange'
 
 const route = useRoute()
 const router = useRouter()
@@ -158,51 +186,72 @@ const from = ref('')
 const to = ref('')
 const fromStation = ref(null)
 const toStation = ref(null)
-const date = ref('')  // 改为字符串类型
+const date = ref('')
 const trainType = ref('')
 const departTime = ref('')
 const departStation = ref('')
 const trains = ref([])
 const loading = ref(false)
 const cities = ref([])
+const hotCities = ref([])
+const searchQuery = ref('')
+const exchangeRate = ref(null)
 
-const dateShortcuts = [
-  {
-    text: 'Today',
-    value: new Date()
-  },
-  {
-    text: 'Tomorrow',
-    value: () => {
-      const date = new Date()
-      date.setTime(date.getTime() + 3600 * 1000 * 24)
-      return date
+// 获取汇率
+const fetchExchangeRate = async () => {
+  try {
+    // const response = await getExchangeRate('CNY', 'USD')
+    const response =  {
+      code: '0',
+      message: null,
+      data: {
+        exchangeRate: {
+          fromCurrencyCode: 'CNY',
+          fromCurrencyName: 'Chinese Yuan',
+          toCurrencyCode: 'USD',
+          toCurrencyName: 'United States Dollar',
+          exchangeRate: '0.13810000',
+          lastRefreshed: '',
+          timeZone: 'UTC',
+          bidPrice: '0.13809000',
+          askPrice: '0.13810000'
+        }
+      }
     }
-  },
-  {
-    text: 'A week later',
-    value: () => {
-      const date = new Date()
-      date.setTime(date.getTime() + 3600 * 1000 * 24 * 7)
-      return date
+    if (response.code === '0' && response.data?.exchangeRate) {
+      // 加上千分之五的汇差
+      const rate = parseFloat(response.data.exchangeRate.exchangeRate)
+      exchangeRate.value = rate * (1 - 0.005)
     }
+  } catch (error) {
+    console.error('Failed to fetch exchange rate:', error)
+    ElMessage.error('Failed to load exchange rate data')
   }
-]
-
-const disabledDate = (time) => {
-  return time.getTime() < Date.now() - 8.64e7 || time.getTime() > Date.now() + 8.64e7 * 30 // 禁用今天之前和30天后的日期
 }
 
 onMounted(async () => {
   try {
-    // 获取所有车站信息
-    const response = await getAllCity()
-    cities.value = response.result.stations.map(station => ({
-      value: station.name,
-      stationCode: station.stationCode,
-      pinyin: station.pingYin,
-      pinyinShort: station.pingYinShort
-    }))
+    await Promise.all([
+      fetchExchangeRate(),
+      getAllCity().then(cityResponse => {
+        cities.value = cityResponse.result.stations.map(station => ({
+          value: station.pingYin,
+          name: station.pingYin,
+          stationCode: station.stationCode,
+          pingYin: station.pingYin,
+          pingYinShort: station.pingYinShort
+        }))
+      }),
+      getHotCity().then(hotCityResponse => {
+        hotCities.value = hotCityResponse.result.stations.map(station => ({
+          value: station.pingYin,
+          name: station.pingYin,
+          stationCode: station.stationCode,
+          pingYin: station.pingYin,
+          pingYinShort: station.pingYinShort
+        }))
+      })
+    ])
 
     // 如果URL中有参数，查找对应的车站信息
     const { from: fromCode, to: toCode, date: dateStr } = route.query
@@ -282,13 +331,15 @@ const searchTrains = async () => {
       isStudent: false
     })
 
+    console.log(response.result.tickets)
+
     // 转换API响应以匹配UI格式
     trains.value = response.result.tickets.map(train => {
       // 处理座位信息
       const seats = []
       if (train.swzPrice) {
         seats.push({
-          type: '商务座',
+          type: 'Business Class',
           price: train.swzPrice,
           status: train.swzNum === '有' ? 'Available' : 
                  train.swzNum === '0' ? 'Sold out' : 
@@ -298,7 +349,7 @@ const searchTrains = async () => {
       }
       if (train.ydzPrice) {
         seats.push({
-          type: '一等座',
+          type: 'First Class',
           price: train.ydzPrice,
           status: train.ydzNum === '有' ? 'Available' : 
                  train.ydzNum === '0' ? 'Sold out' : 
@@ -308,7 +359,7 @@ const searchTrains = async () => {
       }
       if (train.edzPrice) {
         seats.push({
-          type: '二等座',
+          type: 'Second Class',
           price: train.edzPrice,
           status: train.edzNum === '有' ? 'Available' : 
                  train.edzNum === '0' ? 'Sold out' : 
@@ -317,16 +368,22 @@ const searchTrains = async () => {
         })
       }
 
+      // 查找出发和到达站的拼音名称
+      const fromStationObj = cities.value.find(c => c.stationCode === train.fromStation)
+      const toStationObj = cities.value.find(c => c.stationCode === train.toStation)
+
+      console.log(fromStationObj, toStationObj)
+
       return {
         id: train.trainNo,
         number: train.trainCode,
         type: train.trainType === 'G' ? 'High-speed G' : 
               train.trainType === 'D' ? 'High-speed D' : 'Normal K',
         departTime: train.fromTime,
-        departStation: train.fromStation,
+        departStation: fromStationObj ? fromStationObj.pingYin : train.fromStation,
         duration: train.runTime,
         arrivalTime: train.toTime,
-        arrivalStation: train.toStation,
+        arrivalStation: toStationObj ? toStationObj.pingYin : train.toStation,
         expanded: false,
         canBook: train.canBook,
         seats: seats
@@ -379,10 +436,10 @@ const handleSelect = (item) => {
   const activeElement = document.activeElement
   if (activeElement.id === 'from-search') {
     fromStation.value = item
-    from.value = item.value
+    from.value = item.pingYin
   } else if (activeElement.id === 'to-search') {
     toStation.value = item
-    to.value = item.value
+    to.value = item.pingYin
   }
 }
 
@@ -400,16 +457,84 @@ const expandDetails = (train) => {
   train.expanded = !train.expanded
 }
 
-const querySearch = (queryString, cb) => {
-  const results = queryString
-    ? cities.value.filter(city => {
-        const searchStr = queryString.toLowerCase()
-        return city.value.toLowerCase().includes(searchStr) ||
-               city.pinyin.toLowerCase().replace(/\s+/g, '').includes(searchStr)
-      })
-    : cities.value
+const highlightMatch = (text, query) => {
+  if (!query) return text
+  
+  // 转换为小写进行匹配
+  const lowerText = text.toLowerCase()
+  const lowerQuery = query.toLowerCase()
+  
+  // 如果没有匹配到，直接返回原文本
+  const index = lowerText.indexOf(lowerQuery)
+  if (index === -1) return text
+  
+  // 保持原文本的大小写，只添加高亮样式
+  const before = text.slice(0, index)
+  const match = text.slice(index, index + query.length)
+  const after = text.slice(index + query.length)
+  return before + `<span class="highlight">${match}</span>` + after
+}
 
-  cb(results)
+const querySearch = (queryString, cb) => {
+  searchQuery.value = queryString
+  if (!queryString) {
+    const suggestions = []
+    
+    // Add hot cities section
+    if (hotCities.value.length > 0) {
+      suggestions.push({
+        label: 'Hot Cities',
+        cities: hotCities.value.map(city => ({
+          ...city,
+          pingYin: city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase(),
+          displayPinyin: city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase()
+        }))
+      })
+    }
+
+    // Group other cities by pinyin first letter
+    const groupedCities = {}
+    cities.value.forEach(city => {
+      const firstLetter = city.pingYin[0].toUpperCase()
+      if (!groupedCities[firstLetter]) {
+        groupedCities[firstLetter] = []
+      }
+      const formattedPinyin = city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase()
+      groupedCities[firstLetter].push({
+        ...city,
+        pingYin: formattedPinyin,
+        displayPinyin: formattedPinyin
+      })
+    })
+
+    // Add grouped cities
+    Object.entries(groupedCities)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .forEach(([letter, cities]) => {
+        suggestions.push({
+          label: letter,
+          cities: cities
+        })
+      })
+
+    cb(suggestions)
+  } else {
+    const searchStr = queryString.toLowerCase()
+    const results = cities.value.filter(city => {
+      return city.name.toLowerCase().includes(searchStr) ||
+             city.pingYin.toLowerCase().includes(searchStr) ||
+             city.pingYinShort.toLowerCase().includes(searchStr)
+    }).map(city => {
+      const formattedPinyin = city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase()
+      return {
+        ...city,
+        pingYin: formattedPinyin,
+        displayPinyin: highlightMatch(formattedPinyin, queryString)
+      }
+    })
+
+    cb([{ label: 'Search Results', cities: results }])
+  }
 }
 
 // Watch for route query changes
@@ -440,6 +565,8 @@ watch(
         const parsedDate = new Date(newQuery.date)
         if (!isNaN(parsedDate.getTime())) {
           date.value = parsedDate.toISOString().split('T')[0]
+        } else {
+          date.value = new Date().toISOString().split('T')[0]
         }
       } catch {
         date.value = new Date().toISOString().split('T')[0]
@@ -452,6 +579,59 @@ watch(
   },
   { immediate: true }
 )
+
+const dateShortcuts = [
+  {
+    text: 'Today',
+    value: new Date()
+  },
+  {
+    text: 'Tomorrow',
+    value: () => {
+      const date = new Date()
+      date.setTime(date.getTime() + 3600 * 1000 * 24)
+      return date
+    }
+  },
+  {
+    text: 'A week later',
+    value: () => {
+      const date = new Date()
+      date.setTime(date.getTime() + 3600 * 1000 * 24 * 7)
+      return date
+    }
+  }
+]
+
+const disabledDate = (time) => {
+  return time.getTime() < Date.now() - 8.64e7 || time.getTime() > Date.now() + 8.64e7 * 30 // 禁用今天之前和30天后的日期
+}
+
+// 转换价格从人民币到美元
+const convertToUSD = (cnyPrice) => {
+  if (!exchangeRate.value || !cnyPrice) return 0
+  const usdPrice = parseFloat(cnyPrice) * exchangeRate.value
+  return Math.ceil(usdPrice) // 向上取整到两位小数
+}
+
+// 跳转到创建订单页面
+const goToCreateOrder = (train, seat) => {
+  router.push({
+    name: 'CreateOrder',
+    query: {
+      trainId: train.id,
+      trainNo: train.number,
+      from: train.departStation,
+      to: train.arrivalStation,
+      date: date.value,
+      seatType: seat.type,
+      price: seat.price,
+      departTime: train.departTime,
+      arriveTime: train.arrivalTime,
+      duration: train.duration
+    }
+  })
+}
 </script>
 
 <style scoped>
@@ -459,62 +639,190 @@ watch(
   padding: 24px;
   background: #f5f5f5;
   min-height: 100vh;
+  width: 60%;
+  margin: 0 auto;
 }
 
 .search-header {
   background: white;
-  padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   margin-bottom: 24px;
 }
 
 .search-params {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: flex-end;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  max-width: 1200px;
+  margin-left: 0;
+  width: 100%;
 }
 
 .param {
   flex: 1;
   position: relative;
+  min-width: 20px;
+  max-width: calc(33.33% - 8px); 
+  width: calc(33.33% - 8px);
+  
+  :deep(.el-autocomplete) {
+    display: block;
+    width: 100%;
+  }
+
+  :deep(.el-input) {
+    width: 100%;
+  }
+
+  :deep(.el-input__wrapper) {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  :deep(.el-autocomplete-suggestion) {
+    width: 100% !important;
+    min-width: unset !important;
+    box-sizing: border-box;
+  }
+
+  :deep(.el-popper) {
+    width: 100% !important;
+    min-width: unset !important;
+  }
 }
 
-.param label {
-  display: block;
-  margin-bottom: 8px;
-  color: #606266;
-  font-size: 14px;
-}
-
-.swap-icon {
-  position: absolute;
-  right: -28px;
-  bottom: 12px;
-  cursor: pointer;
-  color: #409EFF;
+.exchange-button {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 8px;
+  flex: 0 0 auto;
+  margin: 0 -6px; 
 }
 
 .search-btn {
   height: 40px;
-  padding: 0 32px;
+  padding: 0 20px;
+  font-weight: normal;
+  border-radius: 4px;
+  flex: 0 0 auto;
+  margin-left: auto; 
 }
 
-:deep(.el-input__wrapper) {
-  box-shadow: 0 0 0 1px #dcdfe6 inset;
-}
+:deep(.city-autocomplete) {
+  width: 100% !important;
+  min-width: unset !important;
+  
+  .el-autocomplete-suggestion__wrap {
+    padding: 0;
+    max-height: 300px;
+  }
+  
+  .el-scrollbar__view {
+    padding: 0;
+  }
 
-:deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px #c0c4cc inset;
-}
-
-:deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px #409eff inset !important;
+  .suggestion-list {
+    max-height: 200px;
+    overflow-y: auto;
+  }
 }
 
 .full-width {
   width: 100%;
+}
+
+.suggestion-group {
+  padding: 8px 0;
+}
+
+.suggestion-group-label {
+  padding: 0 12px;
+  font-size: 13px;
+  color: #909399;
+  margin-bottom: 8px;
+}
+
+.suggestion-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #606266;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestion-item:hover {
+  background-color: #f5f7fa;
+}
+
+:deep(.highlight) {
+  font-weight: bold !important;
+  text-decoration: underline !important;
+}
+
+.filters {
+  display: flex;
+  padding-top: 16px;
+  border-top: 1px solid #EBEEF5;
+  gap: 12px;
+  max-width: 1200px;
+  width: 100%;
+  margin-left: 0;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: calc(33.33% - 8px);
+  width: calc(33.33% - 8px);
+}
+
+.filter-group label {
+  white-space: nowrap;
+  font-size: 14px;
+  color: #606266;
+}
+
+.filter-select {
+  flex: 1;
+  width: 100%;
+}
+
+:deep(.el-select) {
+  width: 100%;
+}
+
+:deep(.el-select .el-input__wrapper) {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+:deep(.el-select .el-input__inner) {
+  height: 30px;
+  line-height: 30px;
+  font-size: 13px;
+}
+
+:deep(.el-select__popper) {
+  border-radius: 4px;
+}
+
+:deep(.el-select-dropdown__item) {
+  font-size: 13px;
+  padding: 0 12px;
+  height: 32px;
+  line-height: 32px;
 }
 
 .results-list {
@@ -525,7 +833,7 @@ watch(
 
 .list-header {
   display: flex;
-  padding: 16px 24px;
+  padding: 12px 24px;
   border-bottom: 1px solid #EBEEF5;
   color: #909399;
   font-size: 14px;
@@ -533,7 +841,7 @@ watch(
 
 .train-item {
   display: flex;
-  padding: 24px;
+  padding: 16px 24px;
   border-bottom: 1px solid #EBEEF5;
   transition: background-color 0.3s;
 }
@@ -620,7 +928,7 @@ watch(
 
 .train-details {
   margin: 0;
-  padding: 24px;
+  padding: 16px 24px;
   background: #f8f9fa;
   border-bottom: 1px solid #EBEEF5;
 }
@@ -629,7 +937,7 @@ watch(
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: 12px 16px;
   background: white;
   border-radius: 6px;
   margin-bottom: 8px;
@@ -691,6 +999,11 @@ watch(
 }
 
 @media (max-width: 768px) {
+  .search-results {
+    width: 95%;
+    padding: 16px;
+  }
+  
   .search-params,
   .filters {
     flex-direction: column;

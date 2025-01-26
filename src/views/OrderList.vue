@@ -1,0 +1,463 @@
+<template>
+  <div class="order-list">
+    <div class="header">
+      <h2>My Orders</h2>
+    </div>
+
+    <div v-if="orders.length === 0" class="empty-state">
+      <el-empty description="No orders found" />
+    </div>
+
+    <div v-else class="orders">
+      <div
+        v-for="order in orders"
+        :key="order.id"
+        class="order-card"
+        :class="{ 'is-highlighted': order.id === highlightedOrderId }"
+      >
+        <div class="train-header">
+          <div class="train-number">Train {{ order.trainNo }}</div>
+          <div class="train-date">{{ order.date }}</div>
+          <div class="remove-link">
+            <el-button type="danger" link @click="removeOrder(order.id)">Remove</el-button>
+          </div>
+        </div>
+
+        <div class="train-route">
+          <div class="station-info">
+            <div class="station">
+              <div class="name">{{ order.from }}</div>
+              <div class="time">{{ order.departTime }}</div>
+            </div>
+            <div class="duration">
+              <div class="seat-type">{{ order.seatType }}</div>
+              <div class="time">{{ calculateDuration(order.departTime, order.arriveTime) }}</div>
+            </div>
+            <div class="station">
+              <div class="name">{{ order.to }}</div>
+              <div class="time">{{ order.arriveTime }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="passenger-list">
+          <div v-for="passenger in order.passengers" :key="passenger.passportNumber" class="passenger-item">
+            <div class="passenger-type">{{ passenger.type }}</div>
+            <div class="passenger-name">{{ passenger.surname }}, {{ passenger.givenName }}</div>
+            <div class="passenger-passport">{{ passenger.passportNumber }}</div>
+            <div class="passenger-country">{{ passenger.country }}</div>
+            <div class="passenger-price">USD{{ calculatePassengerPrice(order, passenger) }}</div>
+          </div>
+        </div>
+
+        <div class="order-summary">
+          <div class="service-fee">
+            Service fee: {{ order.price.service.total / order.price.service.count }} × {{ order.price.service.count }} = USD{{ order.price.service.total }}
+          </div>
+          <div class="subtotal">
+            Subtotal: USD{{ order.price.totalAmount }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="order-actions">
+      <div class="action-buttons">
+        <el-button type="primary" @click="addAnotherTrain">
+          <el-icon><Plus /></el-icon>
+          Add another train
+        </el-button>
+        <template v-if="!isAllTrainsAdded">
+          <el-button type="success" @click="markAllTrainsAdded">
+            All Trains are Added
+          </el-button>
+        </template>
+      </div>
+      <div class="booking-form" v-if="isAllTrainsAdded">
+        <div class="form-grid">
+          <div class="form-column">
+            <div class="form-section">
+              <h3>In case the selected tickets are not available, I would like to</h3>
+              <el-radio-group v-model="unavailableOption">
+                <div class="radio-item">
+                  <el-radio label="upgrade">upgrade to higher class</el-radio>
+                </div>
+                <div class="radio-item">
+                  <el-radio label="downgrade">downgrade to lower class</el-radio>
+                </div>
+                <div class="radio-item">
+                  <el-radio label="switch">switch to an alternative train operating on a similar timetable within 1 hour</el-radio>
+                </div>
+                <div class="radio-item">
+                  <el-radio label="cancel">cancel and refund</el-radio>
+                </div>
+              </el-radio-group>
+            </div>
+
+            <div class="form-section">
+              <h3>Upgrade to refundable booking (recommended)</h3>
+              <p class="upgrade-info">
+                Upgrade your booking for USD9.26 and receive a FULL refund (USD97.50) if you cannot attend and can evidence one of the many reasons in our 
+                <el-link type="primary" href="#" @click.prevent>Terms and Conditions</el-link>, 
+                which you accept when you select a Refundable Booking. 
+                <el-link type="primary" href="#" @click.prevent>See more</el-link>.
+              </p>
+              <el-radio-group v-model="refundableOption">
+                <div class="radio-item">
+                  <el-radio label="yes">
+                    Yes, Upgrade my booking. (+USD9.26)
+                    <el-tag size="small" type="danger" effect="light">recommended</el-tag>
+                  </el-radio>
+                </div>
+                <div class="radio-item">
+                  <el-radio label="no">No, keep my book non-refundable.</el-radio>
+                </div>
+              </el-radio-group>
+            </div>
+          </div>
+
+          <div class="form-column">
+            <div class="form-section">
+              <h3>How to receive tickets?</h3>
+              <el-radio-group v-model="receiveOption">
+                <div class="radio-item">
+                  <el-radio label="email">Receive e-ticket by email</el-radio>
+                </div>
+              </el-radio-group>
+            </div>
+
+            <div class="form-section contact-info">
+              <h3>Contact Information</h3>
+              <el-form :model="contactForm" label-position="top" :class="{ 'el-form--compact': true }">
+                <el-form-item label="Name:">
+                  <el-select v-model="contactForm.title" class="title-select">
+                    <el-option label="Mr" value="Mr" />
+                    <el-option label="Ms" value="Ms" />
+                    <el-option label="Mrs" value="Mrs" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="Email:">
+                  <el-input v-model="contactForm.email" />
+                </el-form-item>
+                <el-form-item label="Confirm email:">
+                  <el-input v-model="contactForm.confirmEmail" />
+                </el-form-item>
+                <el-form-item label="Tel / Mobile:">
+                  <el-input v-model="contactForm.phone" />
+                </el-form-item>
+              </el-form>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section terms">
+          <el-checkbox v-model="agreeToTerms">
+            I have read and agree to the 
+            <el-link type="primary" href="#" @click.prevent>Terms and Conditions</el-link>
+          </el-checkbox>
+        </div>
+
+        <div class="form-actions">
+          <el-button type="primary" :disabled="!agreeToTerms" @click="bookNow">
+            Book Now
+          </el-button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useOrderStore } from '@/stores/order'
+import { Plus } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+
+const router = useRouter()
+const orderStore = useOrderStore()
+const isAllTrainsAdded = ref(false)
+
+// 获取所有订单
+const orders = computed(() => orderStore.orders)
+
+// 计算行程时长
+const calculateDuration = (departTime, arriveTime) => {
+  const [departHour, departMinute] = departTime.split(':').map(Number)
+  const [arriveHour, arriveMinute] = arriveTime.split(':').map(Number)
+  
+  let hours = arriveHour - departHour
+  let minutes = arriveMinute - departMinute
+  
+  if (minutes < 0) {
+    hours -= 1
+    minutes += 60
+  }
+  
+  return `${hours}:${minutes.toString().padStart(2, '0')}`
+}
+
+// 计算乘客票价
+const calculatePassengerPrice = (order, passenger) => {
+  if (passenger.type === 'Adult') {
+    return (order.price.adult.total / order.price.adult.count).toFixed(2)
+  } else {
+    return (order.price.child.total / order.price.child.count).toFixed(2)
+  }
+}
+
+// 添加新车次
+const addAnotherTrain = () => {
+  router.push('/trains/search')
+}
+
+// 标记所有车次已添加
+const markAllTrainsAdded = () => {
+  isAllTrainsAdded.value = true
+}
+
+// 移除订单
+const removeOrder = (orderId) => {
+  orderStore.removeOrder(orderId)
+  ElMessage.success('Order removed successfully')
+  
+  // 如果删除了所有订单，重置状态
+  if (orders.value.length === 0) {
+    isAllTrainsAdded.value = false
+  }
+}
+
+const unavailableOption = ref('upgrade')
+const refundableOption = ref('yes')
+const receiveOption = ref('email')
+const agreeToTerms = ref(false)
+const contactForm = ref({
+  title: 'Mr',
+  email: '',
+  confirmEmail: '',
+  phone: ''
+})
+
+// 提交订单
+const bookNow = () => {
+  if (!agreeToTerms.value) {
+    ElMessage.warning('Please agree to the Terms and Conditions')
+    return
+  }
+  
+  // TODO: 处理订单提交
+  ElMessage.success('Booking submitted successfully')
+}
+</script>
+
+<style scoped>
+.order-list {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.order-card {
+  background: #f5f7fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.train-header {
+  padding: 12px 20px;
+  background: #fff;
+  position: relative;
+}
+
+.train-number {
+  display: inline-block;
+  background: #ff9f00;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.train-date {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.train-route {
+  padding: 20px;
+  background: #fff;
+}
+
+.station-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.station {
+  flex: 1;
+}
+
+.station .name {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.station .time {
+  font-size: 14px;
+  color: #606266;
+}
+
+.duration {
+  text-align: center;
+  padding: 0 40px;
+}
+
+.duration .seat-type {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 4px;
+}
+
+.duration .time {
+  font-size: 14px;
+  color: #909399;
+}
+
+.passenger-list {
+  padding: 20px;
+}
+
+.passenger-item {
+  display: grid;
+  grid-template-columns: 100px 1fr 1fr 1fr 120px;
+  gap: 20px;
+  margin-bottom: 10px;
+  color: #606266;
+}
+
+.remove-link {
+  position: absolute;
+  top: 12px;
+  right: 20px;
+}
+
+.order-summary {
+  padding: 20px;
+  text-align: right;
+  border-top: 1px solid #ebeef5;
+}
+
+.service-fee {
+  color: #606266;
+  margin-bottom: 8px;
+}
+
+.subtotal {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.order-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  width: 100%;
+  padding: 16px 0;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.booking-form {
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 24px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.form-section {
+  margin-bottom: 24px;
+}
+
+.form-section h3 {
+  font-size: 15px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 12px;
+}
+
+.radio-item {
+  margin-bottom: 8px;
+}
+
+.upgrade-info {
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.title-select {
+  width: 120px;
+}
+
+.terms {
+  margin: 20px 0;
+  padding-top: 20px;
+  border-top: 1px solid #ebeef5;
+}
+
+.form-actions {
+  text-align: center;
+  margin-top: 24px;
+}
+
+:deep(.el-form--compact) {
+  .el-form-item {
+    margin-bottom: 16px;
+  }
+
+  .el-form-item__label {
+    padding-bottom: 4px;
+    font-weight: normal;
+    color: #606266;
+  }
+}
+
+:deep(.el-radio__label) {
+  color: #606266;
+}
+
+:deep(.el-tag) {
+  margin-left: 8px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .booking-form {
+    padding: 16px;
+  }
+}
+</style>

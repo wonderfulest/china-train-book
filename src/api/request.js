@@ -1,8 +1,10 @@
 import axios from 'axios';
-import { getApiConfig } from './config';
 
 // 创建axios实例
-const service = axios.create(getApiConfig());
+const service = axios.create({
+  baseURL: '/api',  // 添加 baseURL
+  timeout: 10000
+});
 
 // 请求拦截器
 service.interceptors.request.use(
@@ -11,7 +13,7 @@ service.interceptors.request.use(
     return config;
   },
   error => {
-    console.error('Request error:', error);
+    console.log(error);
     return Promise.reject(error);
   }
 );
@@ -19,10 +21,11 @@ service.interceptors.request.use(
 // 响应拦截器
 service.interceptors.response.use(
   response => {
-    return response.data;
+    const res = response.data;
+    return res;
   },
   error => {
-    console.error('Response error:', error);
+    console.log('err' + error);
     return Promise.reject(error);
   }
 );

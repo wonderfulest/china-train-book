@@ -282,12 +282,19 @@ const handleFocus = async () => {
   font-size: 16px;
 }
 
-:deep(.el-date-editor.el-input) {
+:deep(.el-date-editor.el-input),
+:deep(.el-date-editor .el-input__wrapper) {
+  width: 100%;
   height: 48px;
 }
 
 :deep(.el-date-editor .el-input__wrapper) {
-  height: 48px;
+  padding: 4px 15px;
+}
+
+:deep(.el-date-editor .el-input__inner) {
+  height: 40px;
+  font-size: 16px;
 }
 
 :deep(.el-input__prefix) {
