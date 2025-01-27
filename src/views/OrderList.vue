@@ -45,16 +45,13 @@
             <div class="passenger-name">{{ passenger.surname }}, {{ passenger.givenName }}</div>
             <div class="passenger-passport">{{ passenger.passportNumber }}</div>
             <div class="passenger-country">{{ passenger.country }}</div>
-            <div class="passenger-price">USD{{ calculatePassengerPrice(order, passenger) }}</div>
+            <div class="passenger-price">USD{{ calculatePassengerTotal(passenger) }}</div>
           </div>
         </div>
 
         <div class="order-summary">
-          <div class="service-fee">
-            Service fee: {{ order.price.service.total / order.price.service.count }} × {{ order.price.service.count }} = USD{{ order.price.service.total }}
-          </div>
           <div class="subtotal">
-            Subtotal: USD{{ order.price.totalAmount }}
+            Subtotal: USD{{ calculateOrderTotal(order) }}
           </div>
         </div>
       </div>
@@ -201,18 +198,23 @@ const calculateDuration = (departTime, arriveTime) => {
   return `${hours}:${minutes.toString().padStart(2, '0')}`
 }
 
-// 计算乘客票价
-const calculatePassengerPrice = (order, passenger) => {
-  if (passenger.type === 'Adult') {
-    return (order.price.adult.total / order.price.adult.count).toFixed(2)
-  } else {
-    return (order.price.child.total / order.price.child.count).toFixed(2)
-  }
+// 计算乘客总价（票价+服务费）
+const calculatePassengerTotal = (passenger) => {
+  const ticketPrice = passenger.price || 0
+  const servicePrice = passenger.servicePrice || 0
+  return (ticketPrice + servicePrice).toFixed(2)
+}
+
+// 计算订单总价
+const calculateOrderTotal = (order) => {
+  return order.passengers.reduce((total, passenger) => {
+    return total + (passenger.price || 0) + (passenger.servicePrice || 0)
+  }, 0).toFixed(2)
 }
 
 // 添加新车次
 const addAnotherTrain = () => {
-  router.push('/trains/search')
+  router.push('/')
 }
 
 // 标记所有车次已添加
@@ -294,10 +296,26 @@ const bookNow = async () => {
       throw new Error(`Invalid date/time format for order ${order.id}`)
     }
 
+    // 为每个乘客添加价格信息
+    const passengers = order.passengers.map(passenger => {
+      const basePrice = passenger.type === 'Adult' ? 
+        order.adultPrice : 
+        order.childPrice
+
+      return {
+        ...passenger,
+        price: basePrice,
+        servicePrice: order.servicePrice
+      }
+    })
+
     return {
-      ...order,
+      trainNo: order.trainNo,
+      from: order.from,
+      to: order.to,
       departTime,
       arriveTime,
+      passengers
     }
   })
 
@@ -306,7 +324,9 @@ const bookNow = async () => {
     unavailableOption: unavailableOption.value,
     refundableOption: refundableOption.value,
     receiveOption: receiveOption.value,
-    contactForm: contactForm.value
+    contact: {
+      ...contactForm.value
+    }
   }
 
   try {
@@ -316,7 +336,7 @@ const bookNow = async () => {
     console.log('Booking response:', response) // 添加日志
     const { success, message, data } = response
     
-    if (response.success) {
+    if (success) {
       ElMessage.success('Booking submitted successfully')
       
       // 跳转到订单成功页面
@@ -328,7 +348,7 @@ const bookNow = async () => {
       })
 
     } else {
-      ElMessage.error(response.message || 'Failed to submit booking')
+      ElMessage.error(message || 'Failed to submit booking')
     }
   } catch (error) {
     console.error('Booking error:', error)
@@ -436,11 +456,6 @@ const bookNow = async () => {
   padding: 20px;
   text-align: right;
   border-top: 1px solid #ebeef5;
-}
-
-.service-fee {
-  color: #606266;
-  margin-bottom: 8px;
 }
 
 .subtotal {

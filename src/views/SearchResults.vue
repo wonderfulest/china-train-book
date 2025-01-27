@@ -337,10 +337,8 @@ const searchTrains = async () => {
       isStudent: false
     })
 
-    console.log(response.data.tickets)
-
     // 转换API响应以匹配UI格式
-    trains.value = response.data.tickets.map(train => {
+    trains.value = response.data.map(train => {
       // 处理座位信息
       const seats = []
       if (train.swzPrice) {
@@ -622,6 +620,7 @@ const convertToUSD = (cnyPrice) => {
 
 // 跳转到创建订单页面
 const goToCreateOrder = (train, seat) => {
+
   router.push({
     name: 'CreateOrder',
     query: {
