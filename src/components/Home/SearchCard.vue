@@ -96,19 +96,26 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useCityStore } from '@/stores/city'
+import { storeToRefs } from 'pinia'
 import { Location, Van, Right } from '@element-plus/icons-vue'
 import { getAllCity, getHotCity } from '@/api/modules/train'
 
 const router = useRouter()
 const emit = defineEmits(['search'])
 
+const cityStore = useCityStore()
+const { allCities, hotCities } = storeToRefs(cityStore)
+
+// 本地城市列表
+const cities = computed(() => allCities.value)
+const localHotCities = computed(() => hotCities.value)
+
 const from = ref('')
 const to = ref('')
 const date = ref(new Date().toISOString().split('T')[0])
-const cities = ref([])
-const hotCities = ref([])
 const fromStation = ref(null)
 const toStation = ref(null)
 const searchQuery = ref('')
@@ -180,10 +187,10 @@ const querySearch = (queryString, cb) => {
     const suggestions = []
     
     // Add hot cities section
-    if (hotCities.value.length > 0) {
+    if (localHotCities.value.length > 0) {
       suggestions.push({
         label: 'Hot Cities',
-        cities: hotCities.value.map(city => ({
+        cities: localHotCities.value.map(city => ({
           ...city,
           pingYin: city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase(),
           displayPinyin: city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase()
@@ -239,25 +246,9 @@ const querySearch = (queryString, cb) => {
 const handleFocus = async () => {
   if (cities.value.length === 0) {
     try {
-      // 获取所有城市
-      const response = await getAllCity()
-      cities.value = response.result.stations.map(station => ({
-        name: station.name,
-        stationCode: station.stationCode,
-        pingYin: station.pingYin,
-        pingYinShort: station.pingYinShort
-      }))
-      
-      // 获取热门城市
-      const hotResponse = await getHotCity()
-      hotCities.value = hotResponse.result.stations.map(station => ({
-        name: station.name,
-        stationCode: station.stationCode,
-        pingYin: station.pingYin,
-        pingYinShort: station.pingYinShort
-      }))
+      await cityStore.initializeCities()
     } catch (error) {
-      console.error('Failed to fetch stations:', error)
+      console.error('Failed to initialize cities:', error)
     }
   }
 }

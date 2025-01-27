@@ -13,7 +13,6 @@
         v-for="order in orders"
         :key="order.id"
         class="order-card"
-        :class="{ 'is-highlighted': order.id === highlightedOrderId }"
       >
         <div class="train-header">
           <div class="train-number">Train {{ order.trainNo }}</div>
@@ -80,16 +79,16 @@
               <h3>In case the selected tickets are not available, I would like to</h3>
               <el-radio-group v-model="unavailableOption">
                 <div class="radio-item">
-                  <el-radio label="upgrade">upgrade to higher class</el-radio>
+                  <el-radio value="upgrade">upgrade to higher class</el-radio>
                 </div>
                 <div class="radio-item">
-                  <el-radio label="downgrade">downgrade to lower class</el-radio>
+                  <el-radio value="downgrade">downgrade to lower class</el-radio>
                 </div>
                 <div class="radio-item">
-                  <el-radio label="switch">switch to an alternative train operating on a similar timetable within 1 hour</el-radio>
+                  <el-radio value="switch">switch to an alternative train operating on a similar timetable within 1 hour</el-radio>
                 </div>
                 <div class="radio-item">
-                  <el-radio label="cancel">cancel and refund</el-radio>
+                  <el-radio value="cancel">cancel and refund</el-radio>
                 </div>
               </el-radio-group>
             </div>
@@ -104,13 +103,13 @@
               </p>
               <el-radio-group v-model="refundableOption">
                 <div class="radio-item">
-                  <el-radio label="yes">
+                  <el-radio value="yes">
                     Yes, Upgrade my booking. (+USD9.26)
                     <el-tag size="small" type="danger" effect="light">recommended</el-tag>
                   </el-radio>
                 </div>
                 <div class="radio-item">
-                  <el-radio label="no">No, keep my book non-refundable.</el-radio>
+                  <el-radio value="no">No, keep my book non-refundable.</el-radio>
                 </div>
               </el-radio-group>
             </div>
@@ -121,7 +120,7 @@
               <h3>How to receive tickets?</h3>
               <el-radio-group v-model="receiveOption">
                 <div class="radio-item">
-                  <el-radio label="email">Receive e-ticket by email</el-radio>
+                  <el-radio value="email">Receive e-ticket by email</el-radio>
                 </div>
               </el-radio-group>
             </div>
@@ -129,20 +128,23 @@
             <div class="form-section contact-info">
               <h3>Contact Information</h3>
               <el-form :model="contactForm" label-position="top" :class="{ 'el-form--compact': true }">
-                <el-form-item label="Name:">
-                  <el-select v-model="contactForm.title" class="title-select">
-                    <el-option label="Mr" value="Mr" />
-                    <el-option label="Ms" value="Ms" />
-                    <el-option label="Mrs" value="Mrs" />
-                  </el-select>
+                <el-form-item label="Name:" class="form-item-full">
+                  <div class="name-input-group">
+                    <el-select v-model="contactForm.title" class="title-select">
+                      <el-option label="Mr" value="Mr" />
+                      <el-option label="Ms" value="Ms" />
+                      <el-option label="Mrs" value="Mrs" />
+                    </el-select>
+                    <el-input v-model="contactForm.name" placeholder="Enter your name" />
+                  </div>
                 </el-form-item>
-                <el-form-item label="Email:">
+                <el-form-item label="Email:" class="form-item-full">
                   <el-input v-model="contactForm.email" />
                 </el-form-item>
-                <el-form-item label="Confirm email:">
+                <el-form-item label="Confirm email:" class="form-item-full">
                   <el-input v-model="contactForm.confirmEmail" />
                 </el-form-item>
-                <el-form-item label="Tel / Mobile:">
+                <el-form-item label="Tel / Mobile:" class="form-item-full">
                   <el-input v-model="contactForm.phone" />
                 </el-form-item>
               </el-form>
@@ -173,10 +175,12 @@ import { useRouter } from 'vue-router'
 import { useOrderStore } from '@/stores/order'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { submitBooking } from '@/api/modules/orders'
 
 const router = useRouter()
 const orderStore = useOrderStore()
 const isAllTrainsAdded = ref(false)
+const highlightedOrderId = ref(null)
 
 // 获取所有订单
 const orders = computed(() => orderStore.orders)
@@ -233,20 +237,103 @@ const receiveOption = ref('email')
 const agreeToTerms = ref(false)
 const contactForm = ref({
   title: 'Mr',
+  name: '',
   email: '',
   confirmEmail: '',
   phone: ''
 })
 
+// 格式化时间为 yyyy-MM-dd HH:mm:ss
+const formatDateTime = (date, time) => {
+  try {
+    if (!date || !time) return null
+
+    // 验证日期格式
+    if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(date)) {
+      console.error('Invalid date format:', date)
+      return null
+    }
+
+    // 验证时间格式
+    if (!/^\d{1,2}:\d{1,2}$/.test(time)) {
+      console.error('Invalid time format:', time)
+      return null
+    }
+
+    const [year, month, day] = date.split('-').map(Number)
+    const [hour, minute] = time.split(':').map(Number)
+
+    // 验证数值范围
+    if (month < 1 || month > 12 || day < 1 || day > 31 ||
+        hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+      console.error('Invalid date/time values:', { date, time })
+      return null
+    }
+
+    // 格式化为指定格式
+    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`
+  } catch (error) {
+    console.error('Error formatting date/time:', error)
+    return null
+  }
+}
+
 // 提交订单
-const bookNow = () => {
+const bookNow = async () => {
   if (!agreeToTerms.value) {
     ElMessage.warning('Please agree to the Terms and Conditions')
     return
   }
-  
-  // TODO: 处理订单提交
-  ElMessage.success('Booking submitted successfully')
+
+  // 处理订单数据，转换时间格式
+  const processedOrders = orders.value.map(order => {
+    const departTime = formatDateTime(order.date, order.departTime)
+    const arriveTime = formatDateTime(order.date, order.arriveTime)
+
+    if (!departTime || !arriveTime) {
+      throw new Error(`Invalid date/time format for order ${order.id}`)
+    }
+
+    return {
+      ...order,
+      departTime,
+      arriveTime,
+    }
+  })
+
+  const bookForm = {
+    orders: processedOrders,
+    unavailableOption: unavailableOption.value,
+    refundableOption: refundableOption.value,
+    receiveOption: receiveOption.value,
+    contactForm: contactForm.value
+  }
+
+  try {
+    console.log('Submitting booking form:', JSON.stringify(bookForm))
+    const response = await submitBooking(bookForm)
+    
+    console.log('Booking response:', response) // 添加日志
+    const { success, message, data } = response
+    
+    if (response.success) {
+      ElMessage.success('Booking submitted successfully')
+      
+      // 跳转到订单成功页面
+      router.push({
+        path: '/trains/pay/',
+        query: {
+          bookingId: data.bookingId // 使用 data 中的 bookingId
+        }
+      })
+
+    } else {
+      ElMessage.error(response.message || 'Failed to submit booking')
+    }
+  } catch (error) {
+    console.error('Booking error:', error)
+    ElMessage.error(error.message || 'Failed to submit booking. Please try again later.')
+  }
 }
 </script>
 
@@ -414,8 +501,47 @@ const bookNow = () => {
   margin-bottom: 12px;
 }
 
+.name-input-group {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+}
+
 .title-select {
-  width: 120px;
+  width: 100px;
+  flex-shrink: 0;
+}
+
+:deep(.el-input) {
+  width: 100%;
+}
+
+.form-item-full {
+  width: 100%;
+}
+
+.form-item-full :deep(.el-form-item__content) {
+  width: 100%;
+}
+
+:deep(.el-form--compact) {
+  width: 100%;
+  
+  .el-form-item {
+    margin-bottom: 16px;
+    width: 100%;
+  }
+
+  .el-form-item__content {
+    display: flex;
+  }
+
+  .el-form-item__label {
+    padding-bottom: 4px;
+    font-weight: normal;
+    color: #606266;
+  }
 }
 
 .terms {
@@ -427,18 +553,6 @@ const bookNow = () => {
 .form-actions {
   text-align: center;
   margin-top: 24px;
-}
-
-:deep(.el-form--compact) {
-  .el-form-item {
-    margin-bottom: 16px;
-  }
-
-  .el-form-item__label {
-    padding-bottom: 4px;
-    font-weight: normal;
-    color: #606266;
-  }
 }
 
 :deep(.el-radio__label) {

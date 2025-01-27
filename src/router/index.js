@@ -16,6 +16,8 @@ import ChinaEsim from '../views/ChinaEsim.vue'
 import CreateOrder from '../views/CreateOrder.vue'
 import OrderList from '../views/OrderList.vue'
 import NotFound from '../views/NotFound.vue'
+import BookingSuccess from '../views/BookingSuccess.vue'
+import BookingPaymentPending from '../views/BookingPaymentPending.vue'
 
 const routes = [
   {
@@ -97,6 +99,22 @@ const routes = [
     path: '/trains/order/list',
     name: 'orderList',
     component: () => import('../views/OrderList.vue')
+  },
+  {
+    path: '/trains/pay/',
+    name: 'BookingPaymentPending',
+    component: () => import('@/views/BookingPaymentPending.vue'),
+    meta: {
+      title: 'Payment Confirmation'
+    }
+  },
+  {
+    path: '/booking-success',
+    name: 'BookingSuccess',
+    component: () => import('@/views/BookingSuccess.vue'),
+    meta: {
+      title: 'Booking Success'
+    }
   },
   // 404 catch-all route
   {

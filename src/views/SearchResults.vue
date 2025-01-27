@@ -173,15 +173,35 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Switch, Location } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getAllCity, getTicketList, getHotCity } from '@/api/modules/train'
+import { getTicketList } from '@/api/modules/train'
 import { getExchangeRate } from '@/api/modules/exchange'
+import { useCityStore } from '@/stores/city'
+import { storeToRefs } from 'pinia'
 
 const route = useRoute()
 const router = useRouter()
+const cityStore = useCityStore()
+const { allCities, hotCities } = storeToRefs(cityStore)
+
+// 转换城市数据格式
+const cities = computed(() => allCities.value.map(station => ({
+  value: station.pingYin,
+  name: station.pingYin,
+  stationCode: station.stationCode,
+  label: `${station.name} - ${station.pingYin}`
+})))
+
+const localHotCities = computed(() => hotCities.value.map(station => ({
+  value: station.pingYin,
+  name: station.pingYin,
+  stationCode: station.stationCode,
+  label: `${station.name} - ${station.pingYin}`
+})))
+
 const from = ref('')
 const to = ref('')
 const fromStation = ref(null)
@@ -192,8 +212,6 @@ const departTime = ref('')
 const departStation = ref('')
 const trains = ref([])
 const loading = ref(false)
-const cities = ref([])
-const hotCities = ref([])
 const searchQuery = ref('')
 const exchangeRate = ref(null)
 
@@ -229,30 +247,14 @@ const fetchExchangeRate = async () => {
   }
 }
 
-onMounted(async () => {
+const initialize = async () => {
+  loading.value = true
   try {
     await Promise.all([
       fetchExchangeRate(),
-      getAllCity().then(cityResponse => {
-        cities.value = cityResponse.result.stations.map(station => ({
-          value: station.pingYin,
-          name: station.pingYin,
-          stationCode: station.stationCode,
-          pingYin: station.pingYin,
-          pingYinShort: station.pingYinShort
-        }))
-      }),
-      getHotCity().then(hotCityResponse => {
-        hotCities.value = hotCityResponse.result.stations.map(station => ({
-          value: station.pingYin,
-          name: station.pingYin,
-          stationCode: station.stationCode,
-          pingYin: station.pingYin,
-          pingYinShort: station.pingYinShort
-        }))
-      })
+      cityStore.initializeCityData()
     ])
-
+    
     // 如果URL中有参数，查找对应的车站信息
     const { from: fromCode, to: toCode, date: dateStr } = route.query
     
@@ -293,10 +295,14 @@ onMounted(async () => {
       searchTrains()
     }
   } catch (error) {
-    console.error('Failed to fetch stations:', error)
-    ElMessage.error('Failed to load station data')
+    console.error('Failed to initialize:', error)
+    ElMessage.error('Failed to load data')
+  } finally {
+    loading.value = false
   }
-})
+}
+
+onMounted(initialize)
 
 const formatDateTime = (dateStr) => {
   const date = new Date(dateStr)
@@ -331,10 +337,10 @@ const searchTrains = async () => {
       isStudent: false
     })
 
-    console.log(response.result.tickets)
+    console.log(response.data.tickets)
 
     // 转换API响应以匹配UI格式
-    trains.value = response.result.tickets.map(train => {
+    trains.value = response.data.tickets.map(train => {
       // 处理座位信息
       const seats = []
       if (train.swzPrice) {
@@ -481,10 +487,10 @@ const querySearch = (queryString, cb) => {
     const suggestions = []
     
     // Add hot cities section
-    if (hotCities.value.length > 0) {
+    if (localHotCities.value.length > 0) {
       suggestions.push({
         label: 'Hot Cities',
-        cities: hotCities.value.map(city => ({
+        cities: localHotCities.value.map(city => ({
           ...city,
           pingYin: city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase(),
           displayPinyin: city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase()

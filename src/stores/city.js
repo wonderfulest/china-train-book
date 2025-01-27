@@ -64,16 +64,17 @@ export const useCityStore = defineStore('city', {
           getAllCity(),
           getHotCity()
         ])
+        console.log(allCitiesResponse, hotCitiesResponse)
 
         // Transform the data
-        this.allCities = allCitiesResponse.result.stations.map(station => ({
+        this.allCities = allCitiesResponse.data.stations.map(station => ({
           name: station.name,
           stationCode: station.stationCode,
           pingYin: station.pingYin,
           pingYinShort: station.pingYinShort
         }))
 
-        this.hotCities = hotCitiesResponse.result.stations.map(station => ({
+        this.hotCities = hotCitiesResponse.data.stations.map(station => ({
           name: station.name,
           stationCode: station.stationCode,
           pingYin: station.pingYin,
