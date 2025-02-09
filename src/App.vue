@@ -10,11 +10,19 @@
       </router-view>
     </el-main>
 
-    <TheFooter />
+    <!-- <TheFooter /> -->
   </el-container>
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
+
+onMounted(() => {
+  const script = document.createElement('script')
+  script.src = 'https://www.paypal.com/sdk/js?client-id=AX7B_5LTYnNCzBwVQVKMiSrps_zHH_20Krjk2La-VI0gElc7FcPyP6xdZyiogrscq8qsb2Z3i5etwskp&currency=USD'
+  script.async = true
+  document.head.appendChild(script)
+})
 import TheHeader from './components/TheHeader.vue'
 import TheFooter from './components/TheFooter.vue'
 </script>

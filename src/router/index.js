@@ -13,7 +13,7 @@ import Flights from '../views/Flights.vue'
 import ChinaTrainGuide from '../views/ChinaTrainGuide.vue'
 import BookingGuide from '../views/BookingGuide.vue'
 import ChinaEsim from '../views/ChinaEsim.vue'
-import CreateOrder from '../views/CreateOrder.vue'
+import OrderCreate from '../views/OrderCreate.vue'
 import OrderList from '../views/OrderList.vue'
 import NotFound from '../views/NotFound.vue'
 import BookingSuccess from '../views/BookingSuccess.vue'
@@ -87,13 +87,13 @@ const routes = [
   },
   {
     path: '/create-order',
-    name: 'CreateOrder',
-    component: CreateOrder
+    name: 'OrderCreate',
+    component: OrderCreate
   },
   {
     path: '/trains/order',
     name: 'order',
-    component: () => import('../views/CreateOrder.vue')
+    component: () => import('../views/OrderCreate.vue')
   },
   {
     path: '/trains/order/list',

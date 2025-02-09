@@ -18,15 +18,15 @@
             <el-menu-item index="/terms-conditions">Terms and Conditions</el-menu-item>
           </el-sub-menu>
 
-          <el-menu-item index="/flights">FLIGHTS</el-menu-item>
-          <el-menu-item index="/china-esim">CHINA ESIM</el-menu-item>
+          <!-- <el-menu-item index="/flights">FLIGHTS</el-menu-item> -->
+          <!-- <el-menu-item index="/china-esim">CHINA ESIM</el-menu-item> -->
 
-          <el-sub-menu index="/guide">
+          <!-- <el-sub-menu index="/guide">
             <template #title>GUIDE</template>
             <el-menu-item index="/category/travel-guide">Travel Guide</el-menu-item>
             <el-menu-item index="/category/china_train_guide">China train guide</el-menu-item>
             <el-menu-item index="/category/booking-guide">Booking guide</el-menu-item>
-          </el-sub-menu>
+          </el-sub-menu> -->
 
           <el-menu-item index="/contact-us">CONTACT US</el-menu-item>
           <el-menu-item index="/my-bookings" class="my-bookings">MY BOOKINGS</el-menu-item>
@@ -34,7 +34,7 @@
         <div class="user-actions">
           <el-select v-model="language" class="language-select">
             <el-option label="English" value="en" />
-            <el-option label="简体中文" value="zh" />
+            <!-- <el-option label="简体中文" value="zh" /> -->
           </el-select>
         </div>
       </nav>
@@ -129,6 +129,7 @@ const language = ref('en')
   display: flex;
   align-items: center;
   position: relative;
+  font-weight: 900;
 }
 
 .nav-menu :deep(.el-sub-menu) {
@@ -198,6 +199,7 @@ const language = ref('en')
   padding: 0 20px !important;
   font-size: 14px;
   justify-content: flex-start;
+  font-weight: 900;
 }
 
 @media (max-width: 1200px) {

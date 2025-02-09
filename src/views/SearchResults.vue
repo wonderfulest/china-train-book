@@ -384,10 +384,10 @@ const searchTrains = async () => {
         type: train.trainType === 'G' ? 'High-speed G' : 
               train.trainType === 'D' ? 'High-speed D' : 'Normal K',
         departTime: train.fromTime,
-        departStation: fromStationObj ? fromStationObj.pingYin : train.fromStation,
+        departStation: fromStationObj ? fromStationObj.label : train.fromStation,
         duration: train.runTime,
         arrivalTime: train.toTime,
-        arrivalStation: toStationObj ? toStationObj.pingYin : train.toStation,
+        arrivalStation: toStationObj ? toStationObj.label : train.toStation,
         expanded: false,
         canBook: train.canBook,
         seats: seats
@@ -621,8 +621,9 @@ const convertToUSD = (cnyPrice) => {
 // 跳转到创建订单页面
 const goToCreateOrder = (train, seat) => {
 
+  console.log('train, seat', train, seat)
   router.push({
-    name: 'CreateOrder',
+    name: 'OrderCreate',
     query: {
       trainId: train.id,
       trainNo: train.number,

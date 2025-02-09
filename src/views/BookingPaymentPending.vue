@@ -104,9 +104,7 @@
       </div>
 
       <div class="actions">
-        <el-button type="primary" size="large" @click="handlePayment">
-          Pay {{ formatPrice(prices.total) }}
-        </el-button>
+        <div id="paypal-button-container" class="paypal-container"></div>
       </div>
     </div>
   </div>
@@ -132,6 +130,49 @@ onMounted(() => {
     return
   }
   orderId.value = bookingId
+
+  // Initialize PayPal button when SDK is loaded
+  const initPayPalButton = () => {
+    if (window.paypal) {
+      window.paypal.Buttons({
+        createOrder: (data, actions) => {
+          return actions.order.create({
+            purchase_units: [{
+              amount: {
+                currency_code: 'USD',
+                value: prices.value.total.toString()
+              },
+              description: `Train Ticket Order ${orderId.value}`
+            }]
+          });
+        },
+        onApprove: async (data, actions) => {
+          try {
+            const details = await actions.order.capture()
+            ElMessage.success(`Payment successful! Thank you ${details.payer.name.given_name}!`)
+            console.log('Payment successful!', details)
+            // TODO: Call your backend API to update order status
+            // router.push(`/orders/${orderId.value}`)
+          } catch (err) {
+            console.error('Payment capture error:', err)
+            ElMessage.error('Payment failed. Please try again.')
+          }
+        },
+        onError: (err) => {
+          console.error('PayPal error:', err)
+          ElMessage.error('Payment failed. Please try again.')
+        }
+      }).render('#paypal-button-container')
+    }
+  }
+
+  // Check if PayPal SDK is already loaded
+  if (window.paypal) {
+    initPayPalButton()
+  } else {
+    // Wait for SDK to load
+    window.addEventListener('paypal-sdk-loaded', initPayPalButton)
+  }
 })
 
 const orderStatus = ref('Pending')
@@ -205,7 +246,7 @@ const prices = ref({
   deliveryFee: 0.00,
   refundProtect: 24.18,
   transactionFee: 1.69,
-  total: 49.87
+  total: 1.00
 })
 
 // 计算行程时长
@@ -229,14 +270,37 @@ const formatPrice = (price) => {
   return `USD${price.toFixed(2)}`
 }
 
-// 处理支付
-const handlePayment = () => {
-  // TODO: 实现支付逻辑
-  router.push('/payment')
-}
+
 </script>
 
 <style scoped>
+.pp-X9FRD4NFB36QQ {
+  text-align: center;
+  border: none;
+  border-radius: 0.25rem;
+  min-width: 11.625rem;
+  padding: 0 2rem;
+  height: 2.625rem;
+  font-weight: bold;
+  background-color: #FFD140;
+  color: #000000;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.25rem;
+  cursor: pointer;
+}
+
+.paypal-form {
+  display: inline-grid;
+  justify-items: center;
+  align-content: start;
+  gap: 0.5rem;
+}
+
+.paypal-logo {
+  height: 0.875rem;
+  vertical-align: middle;
+}
 .booking-payment {
   padding: 20px;
   background-color: #f5f7fa;
@@ -417,7 +481,14 @@ const handlePayment = () => {
 
 .actions {
   margin-top: 24px;
-  text-align: center;
+  display: flex;
+  justify-content: center;
+}
+
+.paypal-container {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 @media (max-width: 768px) {

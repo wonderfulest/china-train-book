@@ -15,8 +15,10 @@
         class="order-card"
       >
         <div class="train-header">
-          <div class="train-number">Train {{ order.trainNo }}</div>
-          <div class="train-date">{{ order.date }}</div>
+          <div class="train-info">
+            <div class="train-number">Train {{ order.trainNo }}</div>
+            <div class="train-date">{{ order.date }}</div>
+          </div>
           <div class="remove-link">
             <el-button type="danger" link @click="removeOrder(order.id)">Remove</el-button>
           </div>
@@ -24,7 +26,8 @@
 
         <div class="train-route">
           <div class="station-info">
-            <div class="station">
+            <div> {{ order }}</div>
+            <div class="station from">
               <div class="name">{{ order.from }}</div>
               <div class="time">{{ order.departTime }}</div>
             </div>
@@ -32,7 +35,7 @@
               <div class="seat-type">{{ order.seatType }}</div>
               <div class="time">{{ calculateDuration(order.departTime, order.arriveTime) }}</div>
             </div>
-            <div class="station">
+            <div class="station to">
               <div class="name">{{ order.to }}</div>
               <div class="time">{{ order.arriveTime }}</div>
             </div>
@@ -41,17 +44,20 @@
 
         <div class="passenger-list">
           <div v-for="passenger in order.passengers" :key="passenger.passportNumber" class="passenger-item">
-            <div class="passenger-type">{{ passenger.type }}</div>
-            <div class="passenger-name">{{ passenger.surname }}, {{ passenger.givenName }}</div>
-            <div class="passenger-passport">{{ passenger.passportNumber }}</div>
-            <div class="passenger-country">{{ passenger.country }}</div>
-            <div class="passenger-price">USD{{ calculatePassengerTotal(passenger) }}</div>
+            <div class="passenger-info">
+              <div class="passenger-type">{{ passenger.type }}</div>
+              <div class="passenger-number">{{ passenger.passportNumber }}</div>
+            </div>
+            <div class="passenger-price">USD {{ calculatePassengerPrice(order, passenger) }}</div>
           </div>
         </div>
 
         <div class="order-summary">
+          <div class="Service Fee">
+            Service Fee: USD {{ calculateServiceFee(order) }}
+          </div>
           <div class="subtotal">
-            Subtotal: USD{{ calculateOrderTotal(order) }}
+            Subtotal: USD <strong>{{ calculateOrderTotal(order) }}</strong>
           </div>
         </div>
       </div>
@@ -198,18 +204,25 @@ const calculateDuration = (departTime, arriveTime) => {
   return `${hours}:${minutes.toString().padStart(2, '0')}`
 }
 
-// 计算乘客总价（票价+服务费）
-const calculatePassengerTotal = (passenger) => {
-  const ticketPrice = passenger.price || 0
-  const servicePrice = passenger.servicePrice || 0
-  return (ticketPrice + servicePrice).toFixed(2)
+// 计算乘客票价
+const calculatePassengerPrice = (order, passenger) => {
+  if (!order || !order.price) return '0.00'
+  // 根据乘客类型返回对应票价
+  if (passenger.type === 'Adult') {
+    return order.price.adult.price.toFixed(2)
+  } else {
+    return order.price.child.price.toFixed(2)
+  }
+}
+
+// 计算服务费
+const calculateServiceFee = (order) => {
+  return order.price.service.price.toFixed(2) + " x " + order.price.service.count + " = " + (order.price.service.total).toFixed(2)
 }
 
 // 计算订单总价
 const calculateOrderTotal = (order) => {
-  return order.passengers.reduce((total, passenger) => {
-    return total + (passenger.price || 0) + (passenger.servicePrice || 0)
-  }, 0).toFixed(2)
+  return (order.price.adult.total + order.price.child.total + order.price.service.total).toFixed(2)
 }
 
 // 添加新车次
@@ -296,29 +309,20 @@ const bookNow = async () => {
       throw new Error(`Invalid date/time format for order ${order.id}`)
     }
 
-    // 为每个乘客添加价格信息
-    const passengers = order.passengers.map(passenger => {
-      const basePrice = passenger.type === 'Adult' ? 
-        order.adultPrice : 
-        order.childPrice
-
-      return {
-        ...passenger,
-        price: basePrice,
-        servicePrice: order.servicePrice
-      }
-    })
-
     return {
       trainNo: order.trainNo,
       from: order.from,
       to: order.to,
+      seatType: order.seatType,
       departTime,
       arriveTime,
-      passengers
+      passengers: order.passengers,
+      priceDetail: JSON.stringify(order.price),
+      priceAmount: order.price.totalAmount
     }
   })
-
+  
+  console.log('orders, processedOrders', orders.value, processedOrders)
   const bookForm = {
     orders: processedOrders,
     unavailableOption: unavailableOption.value,
@@ -326,7 +330,8 @@ const bookNow = async () => {
     receiveOption: receiveOption.value,
     contact: {
       ...contactForm.value
-    }
+    },
+    totalAmount: processedOrders.reduce((sum, order) => sum + order.priceAmount, 0)
   }
 
   try {
@@ -334,16 +339,16 @@ const bookNow = async () => {
     const response = await submitBooking(bookForm)
     
     console.log('Booking response:', response) // 添加日志
-    const { success, message, data } = response
+    const { code, message, data } = response
     
-    if (success) {
+    if (code == '0') {
       ElMessage.success('Booking submitted successfully')
       
       // 跳转到订单成功页面
       router.push({
         path: '/trains/pay/',
         query: {
-          bookingId: data.bookingId // 使用 data 中的 bookingId
+          bookingId: '1' || data.bookingId // 使用 data 中的 bookingId
         }
       })
 
@@ -365,26 +370,36 @@ const bookNow = async () => {
 }
 
 .order-card {
-  background: #f5f7fa;
-  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
   margin-bottom: 20px;
   overflow: hidden;
 }
 
 .train-header {
   padding: 12px 20px;
-  background: #fff;
+  background: #f8f9fa;
   position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.train-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .train-number {
   display: inline-block;
-  background: #ff9f00;
+  background: #ffa500;
   color: #fff;
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 14px;
-  margin-bottom: 10px;
+  font-weight: bold;
 }
 
 .train-date {
@@ -439,11 +454,30 @@ const bookNow = async () => {
 }
 
 .passenger-item {
-  display: grid;
-  grid-template-columns: 100px 1fr 1fr 1fr 120px;
-  gap: 20px;
-  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 20px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.passenger-info {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.passenger-type {
+  font-weight: bold;
+  color: #303133;
+}
+
+.passenger-number {
   color: #606266;
+}
+
+.passenger-price {
+  color: #303133;
 }
 
 .remove-link {
@@ -453,9 +487,21 @@ const bookNow = async () => {
 }
 
 .order-summary {
-  padding: 20px;
+  padding: 12px 20px;
   text-align: right;
-  border-top: 1px solid #ebeef5;
+  background: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.Service {
+  color: #606266;
+}
+
+.subtotal {
+  color: #303133;
+  font-weight: bold;
 }
 
 .subtotal {
