@@ -26,7 +26,6 @@
 
         <div class="train-route">
           <div class="station-info">
-            <div> {{ order }}</div>
             <div class="station from">
               <div class="name">{{ order.from }}</div>
               <div class="time">{{ order.departTime }}</div>
