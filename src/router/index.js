@@ -14,7 +14,7 @@ import ChinaTrainGuide from '../views/ChinaTrainGuide.vue'
 import BookingGuide from '../views/BookingGuide.vue'
 import ChinaEsim from '../views/ChinaEsim.vue'
 import OrderCreate from '../views/OrderCreate.vue'
-import OrderList from '../views/OrderList.vue'
+import BookingCreate from '../views/BookingCreate.vue'
 import NotFound from '../views/NotFound.vue'
 import BookingSuccess from '../views/BookingSuccess.vue'
 import BookingPaymentPending from '../views/BookingPaymentPending.vue'
@@ -96,9 +96,9 @@ const routes = [
     component: () => import('../views/OrderCreate.vue')
   },
   {
-    path: '/trains/order/list',
-    name: 'orderList',
-    component: () => import('../views/OrderList.vue')
+    path: '/booking/create',
+    name: 'BookingCreate',
+    component: () => import('../views/BookingCreate.vue')
   },
   {
     path: '/trains/pay/',
@@ -109,7 +109,7 @@ const routes = [
     }
   },
   {
-    path: '/booking-success',
+    path: '/booking-success/:bookingId',
     name: 'BookingSuccess',
     component: () => import('@/views/BookingSuccess.vue'),
     meta: {

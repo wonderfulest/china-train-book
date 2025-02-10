@@ -3,7 +3,7 @@
     <div class="payment-card">
       <div class="header">
         <div class="order-info">
-          <div class="order-id">Order ID: <span>{{ orderId }}</span></div>
+          <div class="order-id">Order ID: <span>{{ bookingId }}</span></div>
           <div class="order-status">Order Status: <el-tag>{{ orderStatus }}</el-tag></div>
         </div>
       </div>
@@ -55,12 +55,12 @@
         </div>
       </div>
 
-      <div class="preferences">
-        <div class="preference-item">
+      <div class="preferences" v-if="preferences.unavailable || preferences.receiveMethod">
+        <div class="preference-item" v-if="preferences.unavailable">
           <div class="label">In case the selected tickets are not available, I would like to</div>
           <div class="value">{{ preferences.unavailable }}</div>
         </div>
-        <div class="preference-item">
+        <div class="preference-item" v-if="preferences.receiveMethod">
           <div class="label">Receive e-ticket by</div>
           <div class="value">{{ preferences.receiveMethod }}</div>
         </div>
@@ -85,15 +85,15 @@
       </div>
 
       <div class="price-summary">
-        <div class="price-item">
+        <div class="price-item" v-if="prices.deliveryFee > 0">
           <span>Delivery fee:</span>
           <span>{{ formatPrice(prices.deliveryFee) }}</span>
         </div>
-        <div class="price-item">
+        <div class="price-item" v-if="prices.refundProtect > 0">
           <span>Refund Protect:</span>
           <span>{{ formatPrice(prices.refundProtect) }}</span>
         </div>
-        <div class="price-item">
+        <div class="price-item" v-if="prices.transactionFee > 0">
           <span>Transaction fee:</span>
           <span>{{ formatPrice(prices.transactionFee) }}</span>
         </div>
@@ -114,22 +114,25 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { getBooking, paymentCallback } from '@/api/modules/orders'
 
 const route = useRoute()
 const router = useRouter()
 
 // 从路由参数获取订单ID
-const orderId = ref('')
+const bookingId = ref('')
 
-onMounted(() => {
-  console.log('Route query:', route.query) // 添加调试日志
-  const bookingId = route.query.bookingId
-  if (!bookingId) {
+onMounted(async() => {
+  console.log('Route query:', route.query)
+  bookingId.value = route.query.bookingId
+  if (!bookingId.value) {
     ElMessage.error('Invalid booking ID')
-    router.push('/') // 如果没有订单ID，重定向到首页
+    router.push('/')
     return
   }
-  orderId.value = bookingId
+
+  // 获取预订信息
+  await fetchBookingData()
 
   // Initialize PayPal button when SDK is loaded
   const initPayPalButton = () => {
@@ -142,7 +145,7 @@ onMounted(() => {
                 currency_code: 'USD',
                 value: prices.value.total.toString()
               },
-              description: `Train Ticket Order ${orderId.value}`
+              description: `Train Ticket Order ${bookingId.value}`
             }]
           });
         },
@@ -151,8 +154,17 @@ onMounted(() => {
             const details = await actions.order.capture()
             ElMessage.success(`Payment successful! Thank you ${details.payer.name.given_name}!`)
             console.log('Payment successful!', details)
-            // TODO: Call your backend API to update order status
-            // router.push(`/orders/${orderId.value}`)
+            
+            // Call backend payment callback API
+            try {
+              await paymentCallback(bookingId.value)
+              console.log('Payment callback successful')
+            } catch (callbackErr) {
+              console.error('Payment callback error:', callbackErr)
+              ElMessage.warning('Payment successful but order status update failed. Please contact support.')
+            }
+            
+            router.push(`/booking-success/${bookingId.value}`)
           } catch (err) {
             console.error('Payment capture error:', err)
             ElMessage.error('Payment failed. Please try again.')
@@ -175,79 +187,75 @@ onMounted(() => {
   }
 })
 
-const orderStatus = ref('Pending')
-
-const orders = ref([
-  {
-    trainNo: 'K7731',
-    date: 'Jan 29, 2025',
-    from: 'Beijing Fengtai',
-    to: 'Tianjin',
-    departTime: '00:22',
-    arriveTime: '02:05',
-    standing: '1:43',
-    passengers: [
-      {
-        type: 'Adult',
-        name: '12, 222',
-        passportNumber: '2222',
-        country: 'AL',
-        price: 10.50
-      },
-      {
-        type: 'Adult',
-        name: '111, 111',
-        passportNumber: '111',
-        country: 'AL',
-        price: 10.50
-      }
-    ]
-  },
-  {
-    trainNo: 'Z140',
-    date: 'Jan 31, 2025',
-    from: 'Tianjin west',
-    to: 'Beijing',
-    departTime: '03:18',
-    arriveTime: '04:52',
-    standing: '1:34',
-    passengers: [
-      {
-        type: 'Adult',
-        name: '12, 222',
-        passportNumber: '2222',
-        country: 'AF',
-        price: 11.50
-      },
-      {
-        type: 'Adult',
-        name: '111, 111',
-        passportNumber: '111',
-        country: 'AL',
-        price: 11.50
-      }
-    ]
-  }
-])
-
+const orderStatus = ref('')
+const orders = ref([])
+const contact = ref({})
 const preferences = ref({
   unavailable: 'upgrade to higher class',
   receiveMethod: 'email'
 })
-
-const contact = ref({
-  title: 'Mr',
-  name: '11',
-  email: '11@qq.com',
-  phone: '111'
-})
-
 const prices = ref({
-  deliveryFee: 0.00,
-  refundProtect: 24.18,
-  transactionFee: 1.69,
-  total: 1.00
+  deliveryFee: 0,
+  refundProtect: 0,
+  transactionFee: 0,
+  total: 0
 })
+
+// 获取预订信息
+const fetchBookingData = async () => {
+  try {
+
+    const { code, message, data } = await getBooking(bookingId.value)
+    console.log(1111111, data)
+    if (code === '0' && data) {
+      // 设置订单状态
+      orderStatus.value = data.status || 'Unknown'
+      
+      // 处理订单信息
+      orders.value = data.orders.map(order => {
+        const priceDetail = JSON.parse(order.priceDetail)
+        const [departDate, departTime] = order.departTime.split(' ')
+        const [arriveDate, arriveTime] = order.arriveTime.split(' ')
+        
+        return {
+          trainNo: order.trainNo,
+          date: departDate,
+          from: order.from.split(' - ')[0],
+          to: order.to.split(' - ')[0],
+          departTime: departTime,
+          arriveTime: arriveTime,
+          standing: calculateDuration(departTime, arriveTime),
+          seatType: order.seatType,
+          passengers: order.passengers.map(p => ({
+            type: p.type,
+            name: `${p.surname}, ${p.givenName}`,
+            passportNumber: p.passportNumber,
+            country: p.country,
+            price: p.type === 'Adult' ? priceDetail.adult.price : priceDetail.child.price
+          }))
+        }
+      })
+      
+      // 设置联系人信息
+      contact.value = data.contactForm
+      
+      // 设置价格信息
+      const firstOrderPriceDetail = JSON.parse(data.orders[0].priceDetail)
+      prices.value = {
+        deliveryFee: 0, // 如果API返回这些值，从API中获取
+        refundProtect: 0,
+        transactionFee: 0,
+        total: data.orders.reduce((sum, order) => sum + order.priceAmount, 0)
+      }
+    } else {
+      throw new Error(message || 'Failed to fetch booking data')
+    }
+  } catch (error) {
+    console.error('Error fetching booking data:', error)
+    ElMessage.error('Failed to load booking information')
+    router.push('/')
+  }
+}
 
 // 计算行程时长
 const calculateDuration = (departTime, arriveTime) => {

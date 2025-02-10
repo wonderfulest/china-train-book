@@ -5,6 +5,10 @@
         <el-icon class="success-icon"><CircleCheckFilled /></el-icon>
         <h1>Booking Successful!</h1>
         <p class="subtitle">Your train tickets have been booked successfully</p>
+        <div class="booking-id">
+          Booking ID: <span>{{ bookingId }}</span>
+          <p class="save-reminder">Please save this booking ID for future reference</p>
+        </div>
       </div>
 
       <div class="info-section">
@@ -37,8 +41,11 @@
       </div>
 
       <div class="actions">
-        <el-button type="primary" @click="backToHome">Back to Home</el-button>
+        <el-button type="primary" @click="downloadOrderDetails">
+          <el-icon><Download /></el-icon>Download Order Details
+        </el-button>
         <el-button @click="viewBookings">View My Bookings</el-button>
+        <el-button @click="backToHome">Back to Home</el-button>
       </div>
 
       <div class="contact-support">
@@ -49,10 +56,14 @@
 </template>
 
 <script setup>
-import { CircleCheckFilled } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
+import { CircleCheckFilled, Download } from '@element-plus/icons-vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ref } from 'vue'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
+const route = useRoute()
+const bookingId = ref(route.params.bookingId)
 
 const backToHome = () => {
   router.push('/')
@@ -65,6 +76,30 @@ const viewBookings = () => {
 const contactSupport = () => {
   // 实现联系支持的逻辑
   window.open('mailto:support@chinatrainstickets.com')
+}
+
+const downloadOrderDetails = () => {
+  const now = new Date().toLocaleString()
+  const content = `China Train Tickets - Order Details
+
+Booking ID: ${bookingId.value}
+Date: ${now}
+
+Please keep this information safe for future reference.
+For any assistance, contact support@chinatrainstickets.com
+`
+
+  const blob = new Blob([content], { type: 'text/plain' })
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `order-${bookingId.value}.txt`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  window.URL.revokeObjectURL(url)
+  
+  ElMessage.success('Order details downloaded successfully')
 }
 </script>
 
@@ -90,6 +125,23 @@ const contactSupport = () => {
 .success-header {
   text-align: center;
   margin-bottom: 40px;
+
+  .booking-id {
+    margin-top: 1rem;
+    font-size: 1.1rem;
+    color: #606266;
+
+    .save-reminder {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #f56c6c;
+    }
+  }
+
+  .booking-id span {
+    font-weight: 600;
+    color: #409EFF;
+  }
 }
 
 .success-icon {

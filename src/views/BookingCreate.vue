@@ -1,11 +1,11 @@
 <template>
-  <div class="order-list">
+  <div class="booking-create">
     <div class="header">
-      <h2>My Orders</h2>
+      <h2>Create Booking</h2>
     </div>
 
     <div v-if="orders.length === 0" class="empty-state">
-      <el-empty description="No orders found" />
+      <el-empty description="No trains selected" />
     </div>
 
     <div v-else class="orders">
@@ -348,7 +348,7 @@ const bookNow = async () => {
       router.push({
         path: '/trains/pay/',
         query: {
-          bookingId: '1' || data.bookingId // 使用 data 中的 bookingId
+          bookingId: data.bookingId // 使用 data 中的 bookingId
         }
       })
 
@@ -363,7 +363,7 @@ const bookNow = async () => {
 </script>
 
 <style scoped>
-.order-list {
+.booking-create {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;

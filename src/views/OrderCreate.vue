@@ -314,9 +314,9 @@ const submitOrder = () => {
   // 清空乘客信息
   passengerStore.clearPassengers()
   
-  // 跳转到订单列表页
+  // 跳转到创建订单页
   router.push({
-    path: '/trains/order/list',
+    path: '/booking/create',
     query: { orderId: order.id }
   })
   

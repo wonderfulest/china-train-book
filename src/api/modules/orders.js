@@ -7,3 +7,19 @@ export const submitBooking = (bookForm) => {
     data: bookForm
   })
 }
+
+export const getBooking = (bookingId) => {
+  return request({
+    url: '/booking/get',
+    method: 'get',
+    params: { bookingId }
+  })
+}
+
+export const paymentCallback = (bookingId) => {
+  return request({
+    url: '/booking/payment/callback',
+    method: 'post',
+    params: { bookingId }
+  })
+}
