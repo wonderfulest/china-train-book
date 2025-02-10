@@ -6,6 +6,7 @@ import { viteMockServe } from 'vite-plugin-mock'
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
   const isMock = process.env.VITE_USE_MOCK === 'true'
+  const isProduction = mode === 'production'
   
   return {
     plugins: [
@@ -24,9 +25,21 @@ export default defineConfig(({ command, mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: 'http://localhost:8080',
+          target: isProduction ? process.env.VITE_API_BASE_URL : 'http://localhost:8080',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, '')
+        }
+      }
+    },
+    build: {
+      sourcemap: false,
+      // Reduce chunk size
+      chunkSizeWarningLimit: 1500,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor': ['vue', 'vue-router', 'element-plus'],
+          }
         }
       }
     }
