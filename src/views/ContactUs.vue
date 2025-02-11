@@ -113,7 +113,7 @@ export default {
 .page-header {
   text-align: center;
   margin-bottom: 40px;
-  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('../assets/contact-header-bg.jpg');
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('../assets/images/west-kowloon-station.jpg');
   background-size: cover;
   background-position: center;
   color: white;

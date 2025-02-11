@@ -160,7 +160,7 @@ export default {
 
 .hero-section {
   background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
-              url('../assets/images/international-train.jpg') no-repeat center center;
+              url('../assets/images/west-kowloon-station.jpg') no-repeat center center;
   background-size: cover;
   height: 400px;
   display: flex;

@@ -193,7 +193,7 @@ export default {
 
 .page-header {
   background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
-              url('../assets/images/booking-guide.jpg') no-repeat center center;
+              url('../assets/images/west-kowloon-station.jpg') no-repeat center center;
   background-size: cover;
   color: white;
   text-align: center;
