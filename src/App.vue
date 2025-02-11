@@ -10,7 +10,7 @@
       </router-view>
     </el-main>
 
-    <TheFooter />
+    <!-- <TheFooter /> -->
   </el-container>
 </template>
 

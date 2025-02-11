@@ -21,6 +21,21 @@ import BookingPaymentPending from '../views/BookingPaymentPending.vue'
 
 const routes = [
   {
+    path: '/admin',
+    name: 'Admin',
+    component: () => import('../views/admin/AdminLayout.vue'),
+    children: [
+      {
+        path: 'cookie12306',
+        name: 'Cookie12306',
+        component: () => import('../views/admin/Cookie12306.vue'),
+        meta: {
+          title: '12306 Cookie Management'
+        }
+      }
+    ]
+  },
+  {
     path: '/',
     name: 'Home',
     component: Home
