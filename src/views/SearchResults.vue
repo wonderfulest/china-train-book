@@ -304,14 +304,6 @@ const initialize = async () => {
 
 onMounted(initialize)
 
-const formatDateTime = (dateStr) => {
-  const date = new Date(dateStr)
-  return {
-    time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-    date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
-}
-
 const searchTrains = async () => {
   if (!fromStation.value || !toStation.value || !date.value) {
     ElMessage.warning('Please fill in all search fields')
@@ -375,8 +367,6 @@ const searchTrains = async () => {
       // 查找出发和到达站的拼音名称
       const fromStationObj = cities.value.find(c => c.stationCode === train.fromStation)
       const toStationObj = cities.value.find(c => c.stationCode === train.toStation)
-
-      console.log(fromStationObj, toStationObj)
 
       return {
         id: train.trainNo,
@@ -479,6 +469,35 @@ const highlightMatch = (text, query) => {
   return before + `<span class="highlight">${match}</span>` + after
 }
 
+// 计算城市与搜索字符串的匹配度分数
+const calculateMatchScore = (city, searchStr) => {
+  let score = 0
+  
+  // 如果城市名称以搜索字符串开头，给予更高分数
+  if (city.name.toLowerCase().startsWith(searchStr)) {
+    score += 100
+  } else if (city.name.toLowerCase().includes(searchStr)) {
+    score += 50
+  }
+  
+  // 如果拼音以搜索字符串开头，给予更高分数
+  if (city.value.toLowerCase().startsWith(searchStr)) {
+    score += 80
+  } else if (city.value.toLowerCase().includes(searchStr)) {
+    score += 40
+  }
+  
+  // 如果拼音简写匹配，给予一定分数
+  if (city.pingYinShort && city.pingYinShort.toLowerCase().includes(searchStr)) {
+    score += 30
+  }
+  
+  // 名称越短，分数越高（但权重较低）
+  score += Math.max(0, 10 - city.name.length)
+  
+  return score
+}
+
 const querySearch = (queryString, cb) => {
   searchQuery.value = queryString
   if (!queryString) {
@@ -490,8 +509,8 @@ const querySearch = (queryString, cb) => {
         label: 'Hot Cities',
         cities: localHotCities.value.map(city => ({
           ...city,
-          pingYin: city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase(),
-          displayPinyin: city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase()
+          pingYin: city.value.charAt(0).toUpperCase() + city.value.slice(1).toLowerCase(),
+          displayPinyin: city.value.charAt(0).toUpperCase() + city.value.slice(1).toLowerCase()
         }))
       })
     }
@@ -499,11 +518,11 @@ const querySearch = (queryString, cb) => {
     // Group other cities by pinyin first letter
     const groupedCities = {}
     cities.value.forEach(city => {
-      const firstLetter = city.pingYin[0].toUpperCase()
+      const firstLetter = city.value[0].toUpperCase()
       if (!groupedCities[firstLetter]) {
         groupedCities[firstLetter] = []
       }
-      const formattedPinyin = city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase()
+      const formattedPinyin = city.value.charAt(0).toUpperCase() + city.value.slice(1).toLowerCase()
       groupedCities[firstLetter].push({
         ...city,
         pingYin: formattedPinyin,
@@ -526,15 +545,28 @@ const querySearch = (queryString, cb) => {
     const searchStr = queryString.toLowerCase()
     const results = cities.value.filter(city => {
       return city.name.toLowerCase().includes(searchStr) ||
-             city.pingYin.toLowerCase().includes(searchStr) ||
-             city.pingYinShort.toLowerCase().includes(searchStr)
+             city.value.toLowerCase().includes(searchStr) ||
+             (city.pingYinShort && city.pingYinShort.toLowerCase().includes(searchStr))
     }).map(city => {
-      const formattedPinyin = city.pingYin.charAt(0).toUpperCase() + city.pingYin.slice(1).toLowerCase()
+      const formattedPinyin = city.value.charAt(0).toUpperCase() + city.value.slice(1).toLowerCase()
       return {
         ...city,
         pingYin: formattedPinyin,
-        displayPinyin: highlightMatch(formattedPinyin, queryString)
+        displayPinyin: highlightMatch(formattedPinyin, queryString),
+        // 计算匹配度分数：精确匹配得分高，名称长度短的得分高
+        matchScore: calculateMatchScore(city, searchStr)
       }
+    }).sort((a, b) => {
+      // 首先按照匹配度分数排序（降序）
+      if (b.matchScore !== a.matchScore) {
+        return b.matchScore - a.matchScore;
+      }
+      // 其次按照名称长度排序（升序，短名称优先）
+      if (a.name.length !== b.name.length) {
+        return a.name.length - b.name.length;
+      }
+      // 最后按照字典序排序
+      return a.value.localeCompare(b.value);
     })
 
     cb([{ label: 'Search Results', cities: results }])

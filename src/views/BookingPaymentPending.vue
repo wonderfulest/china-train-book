@@ -163,7 +163,6 @@ onMounted(async() => {
               console.error('Payment callback error:', callbackErr)
               ElMessage.warning('Payment successful but order status update failed. Please contact support.')
             }
-            
             router.push(`/booking-success/${bookingId.value}`)
           } catch (err) {
             console.error('Payment capture error:', err)
@@ -206,7 +205,6 @@ const fetchBookingData = async () => {
   try {
 
     const { code, message, data } = await getBooking(bookingId.value)
-    console.log(1111111, data)
     if (code === '0' && data) {
       // 设置订单状态
       orderStatus.value = data.status || 'Unknown'
@@ -240,7 +238,6 @@ const fetchBookingData = async () => {
       contact.value = data.contactForm
       
       // 设置价格信息
-      const firstOrderPriceDetail = JSON.parse(data.orders[0].priceDetail)
       prices.value = {
         deliveryFee: 0, // 如果API返回这些值，从API中获取
         refundProtect: 0,

@@ -116,10 +116,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getBooking } from '@/api/modules/orders'
+import { useRoute, useRouter } from 'vue-router'
+
+const route = useRoute()
+const router = useRouter()
 
 const searchForm = ref({
   bookingId: ''
@@ -128,6 +132,18 @@ const searchForm = ref({
 const loading = ref(false)
 const searched = ref(false)
 const bookingData = ref(null)
+
+// 在组件挂载时检查 URL 参数
+onMounted(() => {
+  // 从 URL 参数中获取 bookingId
+  const urlBookingId = route.query.bookingId
+  
+  if (urlBookingId) {
+    // 如果 URL 中有 bookingId 参数，设置到表单并自动搜索
+    searchForm.value.bookingId = urlBookingId
+    searchBooking()
+  }
+})
 
 const searchBooking = async () => {
   if (!searchForm.value.bookingId) {
