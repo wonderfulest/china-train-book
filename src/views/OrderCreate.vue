@@ -33,9 +33,52 @@ const rules = {
   givenName: [{ required: true, message: 'Please enter given name', trigger: 'blur' }],
   gender: [{ required: true, message: 'Please select gender', trigger: 'change' }],
   birthday: [{ required: true, message: 'Please select birthday', trigger: 'change' }],
-  passportNumber: [{ required: true, message: 'Please enter passport number', trigger: 'blur' }],
+  passportNumber: [
+    { required: true, message: 'Please enter passport number', trigger: 'blur' },
+    { 
+      validator: (rule, value, callback) => {
+        if (!value) {
+          callback();
+          return;
+        }
+        
+        // Remove any spaces
+        const cleanValue = value.trim();
+        
+        // Most passport numbers are 6-15 characters
+        if (cleanValue.length < 6 || cleanValue.length > 15) {
+          callback(new Error('Passport number should be 6-15 characters'));
+          return;
+        }
+        
+        // Most passport numbers contain only letters and numbers
+        // Some may contain < as a filler character
+        const validFormat = /^[A-Z0-9<]+$/i.test(cleanValue);
+        if (!validFormat) {
+          callback(new Error('Passport number should contain only letters, numbers, or < symbol'));
+          return;
+        }
+        
+        callback();
+      },
+      trigger: 'blur'
+    }
+  ],
   passportExpiry: [{ required: true, message: 'Please select passport expiry date', trigger: 'change' }],
-  country: [{ required: true, message: 'Please enter country', trigger: 'blur' }]
+  country: [
+    { required: true, message: 'Please select country', trigger: 'change' },
+    { 
+      validator: (rule, value, callback) => {
+        const isValidCountry = countries.value.some(country => country.code === value);
+        if (!isValidCountry) {
+          callback(new Error('Please select a valid country from the list'));
+        } else {
+          callback();
+        }
+      }, 
+      trigger: 'change' 
+    }
+  ]
 }
 
 // 使用 computed 获取乘客列表
@@ -45,6 +88,202 @@ const passengers = computed(() => passengerStore.passengers)
 const historicalPassengers = computed(() => passengerStore.historicalPassengers)
 
 const exchangeRate = ref(null)
+const countries = ref([
+  { code: 'AFG', name: 'Afghanistan' },
+  { code: 'ALB', name: 'Albania' },
+  { code: 'DZA', name: 'Algeria' },
+  { code: 'AND', name: 'Andorra' },
+  { code: 'AGO', name: 'Angola' },
+  { code: 'ATG', name: 'Antigua and Barbuda' },
+  { code: 'ARG', name: 'Argentina' },
+  { code: 'ARM', name: 'Armenia' },
+  { code: 'AUS', name: 'Australia' },
+  { code: 'AUT', name: 'Austria' },
+  { code: 'AZE', name: 'Azerbaijan' },
+  { code: 'BHS', name: 'Bahamas' },
+  { code: 'BHR', name: 'Bahrain' },
+  { code: 'BGD', name: 'Bangladesh' },
+  { code: 'BRB', name: 'Barbados' },
+  { code: 'BLR', name: 'Belarus' },
+  { code: 'BEL', name: 'Belgium' },
+  { code: 'BLZ', name: 'Belize' },
+  { code: 'BEN', name: 'Benin' },
+  { code: 'BTN', name: 'Bhutan' },
+  { code: 'BOL', name: 'Bolivia' },
+  { code: 'BIH', name: 'Bosnia and Herzegovina' },
+  { code: 'BWA', name: 'Botswana' },
+  { code: 'BRA', name: 'Brazil' },
+  { code: 'BRN', name: 'Brunei' },
+  { code: 'BGR', name: 'Bulgaria' },
+  { code: 'BFA', name: 'Burkina Faso' },
+  { code: 'BDI', name: 'Burundi' },
+  { code: 'CPV', name: 'Cabo Verde' },
+  { code: 'KHM', name: 'Cambodia' },
+  { code: 'CMR', name: 'Cameroon' },
+  { code: 'CAN', name: 'Canada' },
+  { code: 'CAF', name: 'Central African Republic' },
+  { code: 'TCD', name: 'Chad' },
+  { code: 'CHL', name: 'Chile' },
+  { code: 'CHN', name: 'China' },
+  { code: 'COL', name: 'Colombia' },
+  { code: 'COM', name: 'Comoros' },
+  { code: 'COG', name: 'Congo' },
+  { code: 'CRI', name: 'Costa Rica' },
+  { code: 'CIV', name: 'Côte d\'Ivoire' },
+  { code: 'HRV', name: 'Croatia' },
+  { code: 'CUB', name: 'Cuba' },
+  { code: 'CYP', name: 'Cyprus' },
+  { code: 'CZE', name: 'Czech Republic' },
+  { code: 'PRK', name: 'North Korea' },
+  { code: 'COD', name: 'Democratic Republic of the Congo' },
+  { code: 'DNK', name: 'Denmark' },
+  { code: 'DJI', name: 'Djibouti' },
+  { code: 'DMA', name: 'Dominica' },
+  { code: 'DOM', name: 'Dominican Republic' },
+  { code: 'ECU', name: 'Ecuador' },
+  { code: 'EGY', name: 'Egypt' },
+  { code: 'SLV', name: 'El Salvador' },
+  { code: 'GNQ', name: 'Equatorial Guinea' },
+  { code: 'ERI', name: 'Eritrea' },
+  { code: 'EST', name: 'Estonia' },
+  { code: 'SWZ', name: 'Eswatini' },
+  { code: 'ETH', name: 'Ethiopia' },
+  { code: 'FJI', name: 'Fiji' },
+  { code: 'FIN', name: 'Finland' },
+  { code: 'FRA', name: 'France' },
+  { code: 'GAB', name: 'Gabon' },
+  { code: 'GMB', name: 'Gambia' },
+  { code: 'GEO', name: 'Georgia' },
+  { code: 'DEU', name: 'Germany' },
+  { code: 'GHA', name: 'Ghana' },
+  { code: 'GRC', name: 'Greece' },
+  { code: 'GRD', name: 'Grenada' },
+  { code: 'GTM', name: 'Guatemala' },
+  { code: 'GIN', name: 'Guinea' },
+  { code: 'GNB', name: 'Guinea-Bissau' },
+  { code: 'GUY', name: 'Guyana' },
+  { code: 'HTI', name: 'Haiti' },
+  { code: 'HND', name: 'Honduras' },
+  { code: 'HUN', name: 'Hungary' },
+  { code: 'ISL', name: 'Iceland' },
+  { code: 'IND', name: 'India' },
+  { code: 'IDN', name: 'Indonesia' },
+  { code: 'IRN', name: 'Iran' },
+  { code: 'IRQ', name: 'Iraq' },
+  { code: 'IRL', name: 'Ireland' },
+  { code: 'ISR', name: 'Israel' },
+  { code: 'ITA', name: 'Italy' },
+  { code: 'JAM', name: 'Jamaica' },
+  { code: 'JPN', name: 'Japan' },
+  { code: 'JOR', name: 'Jordan' },
+  { code: 'KAZ', name: 'Kazakhstan' },
+  { code: 'KEN', name: 'Kenya' },
+  { code: 'KIR', name: 'Kiribati' },
+  { code: 'KWT', name: 'Kuwait' },
+  { code: 'KGZ', name: 'Kyrgyzstan' },
+  { code: 'LAO', name: 'Laos' },
+  { code: 'LVA', name: 'Latvia' },
+  { code: 'LBN', name: 'Lebanon' },
+  { code: 'LSO', name: 'Lesotho' },
+  { code: 'LBR', name: 'Liberia' },
+  { code: 'LBY', name: 'Libya' },
+  { code: 'LIE', name: 'Liechtenstein' },
+  { code: 'LTU', name: 'Lithuania' },
+  { code: 'LUX', name: 'Luxembourg' },
+  { code: 'MDG', name: 'Madagascar' },
+  { code: 'MWI', name: 'Malawi' },
+  { code: 'MYS', name: 'Malaysia' },
+  { code: 'MDV', name: 'Maldives' },
+  { code: 'MLI', name: 'Mali' },
+  { code: 'MLT', name: 'Malta' },
+  { code: 'MHL', name: 'Marshall Islands' },
+  { code: 'MRT', name: 'Mauritania' },
+  { code: 'MUS', name: 'Mauritius' },
+  { code: 'MEX', name: 'Mexico' },
+  { code: 'FSM', name: 'Micronesia' },
+  { code: 'MDA', name: 'Moldova' },
+  { code: 'MCO', name: 'Monaco' },
+  { code: 'MNG', name: 'Mongolia' },
+  { code: 'MNE', name: 'Montenegro' },
+  { code: 'MAR', name: 'Morocco' },
+  { code: 'MOZ', name: 'Mozambique' },
+  { code: 'MMR', name: 'Myanmar' },
+  { code: 'NAM', name: 'Namibia' },
+  { code: 'NRU', name: 'Nauru' },
+  { code: 'NPL', name: 'Nepal' },
+  { code: 'NLD', name: 'Netherlands' },
+  { code: 'NZL', name: 'New Zealand' },
+  { code: 'NIC', name: 'Nicaragua' },
+  { code: 'NER', name: 'Niger' },
+  { code: 'NGA', name: 'Nigeria' },
+  { code: 'MKD', name: 'North Macedonia' },
+  { code: 'NOR', name: 'Norway' },
+  { code: 'OMN', name: 'Oman' },
+  { code: 'PAK', name: 'Pakistan' },
+  { code: 'PLW', name: 'Palau' },
+  { code: 'PAN', name: 'Panama' },
+  { code: 'PNG', name: 'Papua New Guinea' },
+  { code: 'PRY', name: 'Paraguay' },
+  { code: 'PER', name: 'Peru' },
+  { code: 'PHL', name: 'Philippines' },
+  { code: 'POL', name: 'Poland' },
+  { code: 'PRT', name: 'Portugal' },
+  { code: 'QAT', name: 'Qatar' },
+  { code: 'KOR', name: 'South Korea' },
+  { code: 'ROU', name: 'Romania' },
+  { code: 'RUS', name: 'Russia' },
+  { code: 'RWA', name: 'Rwanda' },
+  { code: 'KNA', name: 'Saint Kitts and Nevis' },
+  { code: 'LCA', name: 'Saint Lucia' },
+  { code: 'VCT', name: 'Saint Vincent and the Grenadines' },
+  { code: 'WSM', name: 'Samoa' },
+  { code: 'SMR', name: 'San Marino' },
+  { code: 'STP', name: 'Sao Tome and Principe' },
+  { code: 'SAU', name: 'Saudi Arabia' },
+  { code: 'SEN', name: 'Senegal' },
+  { code: 'SRB', name: 'Serbia' },
+  { code: 'SYC', name: 'Seychelles' },
+  { code: 'SLE', name: 'Sierra Leone' },
+  { code: 'SGP', name: 'Singapore' },
+  { code: 'SVK', name: 'Slovakia' },
+  { code: 'SVN', name: 'Slovenia' },
+  { code: 'SLB', name: 'Solomon Islands' },
+  { code: 'SOM', name: 'Somalia' },
+  { code: 'ZAF', name: 'South Africa' },
+  { code: 'SSD', name: 'South Sudan' },
+  { code: 'ESP', name: 'Spain' },
+  { code: 'LKA', name: 'Sri Lanka' },
+  { code: 'SDN', name: 'Sudan' },
+  { code: 'SUR', name: 'Suriname' },
+  { code: 'SWE', name: 'Sweden' },
+  { code: 'CHE', name: 'Switzerland' },
+  { code: 'SYR', name: 'Syria' },
+  { code: 'TJK', name: 'Tajikistan' },
+  { code: 'TZA', name: 'Tanzania' },
+  { code: 'THA', name: 'Thailand' },
+  { code: 'TLS', name: 'Timor-Leste' },
+  { code: 'TGO', name: 'Togo' },
+  { code: 'TON', name: 'Tonga' },
+  { code: 'TTO', name: 'Trinidad and Tobago' },
+  { code: 'TUN', name: 'Tunisia' },
+  { code: 'TUR', name: 'Turkey' },
+  { code: 'TKM', name: 'Turkmenistan' },
+  { code: 'TUV', name: 'Tuvalu' },
+  { code: 'UGA', name: 'Uganda' },
+  { code: 'UKR', name: 'Ukraine' },
+  { code: 'ARE', name: 'United Arab Emirates' },
+  { code: 'GBR', name: 'United Kingdom' },
+  { code: 'USA', name: 'United States' },
+  { code: 'URY', name: 'Uruguay' },
+  { code: 'UZB', name: 'Uzbekistan' },
+  { code: 'VUT', name: 'Vanuatu' },
+  { code: 'VAT', name: 'Vatican City' },
+  { code: 'VEN', name: 'Venezuela' },
+  { code: 'VNM', name: 'Vietnam' },
+  { code: 'YEM', name: 'Yemen' },
+  { code: 'ZMB', name: 'Zambia' },
+  { code: 'ZWE', name: 'Zimbabwe' }
+])
 
 // 获取汇率
 const fetchExchangeRate = async () => {
@@ -232,13 +471,33 @@ const validatePassengers = () => {
       ElMessage.error('Please enter passport number')
       return false
     }
+    
+    // Validate passport number format
+    const cleanPassportNumber = passenger.passportNumber.trim();
+    if (cleanPassportNumber.length < 6 || cleanPassportNumber.length > 15) {
+      ElMessage.error('Passport number should be 6-15 characters')
+      return false
+    }
+    
+    const validPassportFormat = /^[A-Z0-9<]+$/i.test(cleanPassportNumber);
+    if (!validPassportFormat) {
+      ElMessage.error('Passport number should contain only letters, numbers, or < symbol')
+      return false
+    }
     if (!passenger.passportExpiry) {
       ElMessage.error('Please enter passport expiry date')
       return false
     }
     if (!passenger.country) {
-      ElMessage.error('Please enter country of passport')
+      ElMessage.error('Please select country of passport')
       return false
+    }
+    
+    // Validate that country is a valid code from the list
+    const isValidCountry = countries.value.some(country => country.code === passenger.country);
+    if (!isValidCountry) {
+      ElMessage.error(`Invalid country code "${passenger.country}". Please select a valid country from the list.`);
+      return false;
     }
 
     // 验证护照有效期
@@ -482,7 +741,19 @@ onMounted(() => {
         </el-form-item>
 
         <el-form-item label="Country Of Passport" prop="country">
-          <el-input v-model="currentPassenger.country" placeholder="Enter country" />
+          <el-select 
+            v-model="currentPassenger.country" 
+            filterable 
+            placeholder="Select country"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="country in countries"
+              :key="country.code"
+              :label="country.name"
+              :value="country.code"
+            />
+          </el-select>
         </el-form-item>
 
         <div class="form-note">

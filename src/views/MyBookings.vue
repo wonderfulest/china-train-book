@@ -5,8 +5,17 @@
       <div class="booking-search">
         <div class="search-form">
           <el-form :model="searchForm" @submit.prevent="searchBooking">
-            <el-form-item label="Booking ID:">
+            <el-form-item>
+              <el-radio-group v-model="searchForm.searchType">
+                <el-radio label="bookingId">Booking ID</el-radio>
+                <el-radio label="email">Contact Email</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item v-if="searchForm.searchType === 'bookingId'" label="Booking ID:">
               <el-input v-model="searchForm.bookingId" placeholder="Enter your booking ID" />
+            </el-form-item>
+            <el-form-item v-else label="Contact Email:">
+              <el-input v-model="searchForm.email" placeholder="Enter your contact email" />
             </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="searchBooking" :loading="loading">
@@ -18,8 +27,8 @@
       </div>
     </div>
 
-    <div v-if="bookingData" class="booking-details">
-      <div class="payment-card">
+    <div v-if="bookingList && bookingList.length > 0" class="booking-details">
+      <div v-for="(bookingData, bookingIndex) in bookingList" :key="bookingData.bookingId" class="payment-card">
         <div class="header">
           <div class="order-info">
             <div class="order-id">Booking ID: <span>{{ bookingData.bookingId }}</span></div>
@@ -110,7 +119,7 @@
     </div>
 
     <div v-else-if="searched" class="no-results">
-      <el-empty description="No booking found with the provided ID" />
+      <el-empty description="No bookings found with the provided information" />
     </div>
   </div>
 </template>
@@ -126,38 +135,58 @@ const route = useRoute()
 const router = useRouter()
 
 const searchForm = ref({
-  bookingId: ''
+  searchType: 'bookingId',
+  bookingId: '',
+  email: ''
 })
 
 const loading = ref(false)
 const searched = ref(false)
-const bookingData = ref(null)
+const bookingList = ref([])
 
 // 在组件挂载时检查 URL 参数
 onMounted(() => {
-  // 从 URL 参数中获取 bookingId
+  // 从 URL 参数中获取 bookingId 或 email
   const urlBookingId = route.query.bookingId
+  const urlEmail = route.query.email
   
   if (urlBookingId) {
     // 如果 URL 中有 bookingId 参数，设置到表单并自动搜索
+    searchForm.value.searchType = 'bookingId'
     searchForm.value.bookingId = urlBookingId
+    searchBooking()
+  } else if (urlEmail) {
+    // 如果 URL 中有 email 参数，设置到表单并自动搜索
+    searchForm.value.searchType = 'email'
+    searchForm.value.email = urlEmail
     searchBooking()
   }
 })
 
 const searchBooking = async () => {
-  if (!searchForm.value.bookingId) {
-    ElMessage.warning('Please enter a booking ID')
+  const searchType = searchForm.value.searchType
+  const searchValue = searchType === 'bookingId' ? searchForm.value.bookingId : searchForm.value.email
+  
+  if (!searchValue) {
+    ElMessage.warning(`Please enter a ${searchType === 'bookingId' ? 'booking ID' : 'contact email'}`)
     return
   }
 
   loading.value = true
   searched.value = false
-  bookingData.value = null
+  bookingList.value = []
 
   try {
-    console.log('Fetching booking data for ID:', searchForm.value.bookingId)
-    const response = await getBooking(searchForm.value.bookingId)
+    console.log(`Fetching booking data for ${searchType}:`, searchValue)
+    let response
+    
+    if (searchType === 'bookingId') {
+      response = await getBooking(searchValue)
+    } else {
+      // Call the API with email parameter
+      response = await getBooking('', searchValue)
+    }
+    
     console.log('API Response:', response)
 
     if (!response.success) {
@@ -165,21 +194,33 @@ const searchBooking = async () => {
     }
 
     if (!response.data) {
-      throw new Error('No booking found')
+      throw new Error('No bookings found')
     }
 
-    bookingData.value = response.data
+    // Handle both single booking and array of bookings
+    if (Array.isArray(response.data)) {
+      bookingList.value = response.data
+    } else {
+      bookingList.value = [response.data]
+    }
+    
     searched.value = true
-    ElMessage.success('Booking found')
-    console.log('Booking data set:', bookingData.value)
+    
+    if (bookingList.value.length > 0) {
+      ElMessage.success(`Found ${bookingList.value.length} booking(s)`)
+    } else {
+      ElMessage.warning('No bookings found')
+    }
+    
+    console.log('Booking data set:', bookingList.value)
   } catch (error) {
     console.error('Error fetching booking:', error)
     ElMessage.error(error.message || 'Failed to fetch booking details')
-    bookingData.value = null
+    bookingList.value = []
     searched.value = true
   } finally {
     loading.value = false
-    console.log('Search completed. Loading:', loading.value, 'Searched:', searched.value, 'Has data:', !!bookingData.value)
+    console.log('Search completed. Loading:', loading.value, 'Searched:', searched.value, 'Has data:', bookingList.value.length > 0)
   }
 }
 
@@ -269,7 +310,7 @@ const getServiceFee = (order) => {
 
 .payment-card {
   max-width: 1000px;
-  margin: 0 auto;
+  margin: 20px auto;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
