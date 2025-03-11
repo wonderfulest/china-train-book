@@ -100,6 +100,15 @@ const routes = [
     component: () => import('../views/orders/OrderList.vue')
   },
   {
+    path: '/booking/passenger-info',
+    name: 'PassengerInfo',
+    component: () => import('../views/booking/PassengerInfo.vue'),
+    meta: {
+      title: 'Passenger Information',
+      step: 2 // For the 4-step navigation system
+    }
+  },
+  {
     path: '/orders/create',
     name: 'OrderCreate',
     component: () => import('../views/orders/OrderCreate.vue')

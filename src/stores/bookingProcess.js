@@ -4,9 +4,9 @@ export const useBookingStore = defineStore('booking', {
   state: () => ({
     steps: [
       { name: 'Search', path: '/trains/timetable' },
-      { name: 'Timetable', path: '/booking/timetable' },
-      { name: 'Passengers', path: '/booking/passengers' },
-      { name: 'Payment', path: '/orders/pay' }
+      { name: 'Passenger Info', path: '/booking/passenger-info' },
+      { name: 'Payment', path: '/orders/pay' },
+      { name: 'Confirmation', path: '/booking-success' }
     ],
     activeStep: 0,
     searchParams: null

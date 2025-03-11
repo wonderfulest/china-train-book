@@ -772,7 +772,7 @@ const goToCreateOrder = (train, seat) => {
 
   console.log("train, seat", train, seat);
   router.push({
-    name: "OrderCreate",
+    name: "PassengerInfo",
     query: {
       trainId: train.id,
       trainNo: train.number,
