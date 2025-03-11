@@ -8,28 +8,44 @@
       </div>
       <nav class="main-nav">
         <el-menu mode="horizontal" router class="nav-menu" :default-active="$route.path">
-          <el-menu-item index="/">HOME</el-menu-item>
+          <!-- 订单流程步骤导航 -->
+          <template v-if="isBookingFlow">
+            <el-menu-item 
+              v-for="(step, index) in bookingSteps" 
+              :key="step.path"
+              :index="step.path"
+              :class="{ 'process-active': index === activeStep }"
+            >
+              <span class="step-number">{{ index + 1 }}</span>
+              {{ step.name }}
+            </el-menu-item>
+          </template>
           
-          <el-sub-menu index="/trains">
-            <template #title>TRAINS</template>
-            <el-menu-item index="/trains">China Mainland Trains</el-menu-item>
-            <el-menu-item index="/hongkongtrains">Hong Kong Trains</el-menu-item>
-            <el-menu-item index="/internationaltrains">International Trains</el-menu-item>
-            <el-menu-item index="/terms-conditions">Terms and Conditions</el-menu-item>
-          </el-sub-menu>
+          <!-- 标准导航菜单 -->
+          <template v-else>
+            <el-menu-item index="/">HOME</el-menu-item>
+            
+            <el-sub-menu index="/trains">
+              <template #title>TRAINS</template>
+              <el-menu-item index="/trains">China Mainland Trains</el-menu-item>
+              <el-menu-item index="/hongkongtrains">Hong Kong Trains</el-menu-item>
+              <el-menu-item index="/internationaltrains">International Trains</el-menu-item>
+              <el-menu-item index="/terms-conditions">Terms and Conditions</el-menu-item>
+            </el-sub-menu>
 
-          <!-- <el-menu-item index="/flights">FLIGHTS</el-menu-item> -->
-          <!-- <el-menu-item index="/china-esim">CHINA ESIM</el-menu-item> -->
+            <!-- <el-menu-item index="/flights">FLIGHTS</el-menu-item> -->
+            <!-- <el-menu-item index="/china-esim">CHINA ESIM</el-menu-item> -->
 
-          <!-- <el-sub-menu index="/guide">
-            <template #title>GUIDE</template>
-            <el-menu-item index="/category/travel-guide">Travel Guide</el-menu-item>
-            <el-menu-item index="/category/china_train_guide">China train guide</el-menu-item>
-            <el-menu-item index="/category/booking-guide">Booking guide</el-menu-item>
-          </el-sub-menu> -->
+            <!-- <el-sub-menu index="/guide">
+              <template #title>GUIDE</template>
+              <el-menu-item index="/category/travel-guide">Travel Guide</el-menu-item>
+              <el-menu-item index="/category/china_train_guide">China train guide</el-menu-item>
+              <el-menu-item index="/category/booking-guide">Booking guide</el-menu-item>
+            </el-sub-menu> -->
 
-          <el-menu-item index="/contact-us">CONTACT US</el-menu-item>
-          <el-menu-item index="/my-bookings" class="my-bookings">MY BOOKINGS</el-menu-item>
+            <el-menu-item index="/contact-us">CONTACT US</el-menu-item>
+            <el-menu-item index="/my-bookings" class="my-bookings">MY BOOKINGS</el-menu-item>
+          </template>
         </el-menu>
         <div class="user-actions">
           <el-select v-model="language" class="language-select">
@@ -43,8 +59,26 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { useBookingStore } from '../stores/bookingProcess'
+
 const language = ref('en')
+const route = useRoute()
+const bookingStore = useBookingStore()
+
+// 是否显示订单流程导航
+const isBookingFlow = computed(() => {
+  return route.path === '/trains/timetable' || 
+         route.path.startsWith('/booking/') || 
+         route.path.startsWith('/orders/')
+})
+
+// 订单流程步骤
+const bookingSteps = computed(() => bookingStore.steps)
+
+// 当前激活步骤
+const activeStep = computed(() => bookingStore.activeStep)
 </script>
 
 <style scoped>
@@ -180,6 +214,26 @@ const language = ref('en')
 .nav-menu :deep(.el-menu-item.is-active)::after {
   background-color: #ff3366;
   transform: scaleX(1);
+}
+
+/* 订单流程步骤样式 */
+.process-active {
+  color: #ff3366 !important;
+  font-weight: bold !important;
+}
+
+.step-number {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  border-radius: 50%;
+  background-color: #ff3366;
+  color: white;
+  margin-right: 8px;
+  font-size: 14px;
+  font-weight: bold;
 }
 
 .nav-menu :deep(.el-menu-item:hover),

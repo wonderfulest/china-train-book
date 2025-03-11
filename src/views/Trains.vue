@@ -168,7 +168,7 @@ export default {
       // TODO: Implement train search
       console.log('Searching trains with:', this.searchForm)
       this.$router.push({
-        path: '/search',
+        path: '/trains/timetable',
         query: {
           from: this.searchForm.from,
           to: this.searchForm.to,

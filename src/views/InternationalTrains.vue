@@ -141,7 +141,7 @@ export default {
   methods: {
     searchRoute(route) {
       this.$router.push({
-        path: '/search',
+        path: '/trains/timetable',
         query: {
           from: route.from,
           to: route.to,

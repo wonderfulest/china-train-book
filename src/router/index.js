@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
-import SearchResults from '../views/SearchResults.vue'
+import TimeTable from '../views/booking/TimeTable.vue'
 import MyBookings from '../views/MyBookings.vue'
 import ContactUs from '../views/ContactUs.vue'
 import TravelGuide from '../views/TravelGuide.vue'
@@ -13,8 +13,8 @@ import Flights from '../views/Flights.vue'
 import ChinaTrainGuide from '../views/ChinaTrainGuide.vue'
 import BookingGuide from '../views/BookingGuide.vue'
 import OrderCreate from '../views/orders/OrderCreate.vue'
-import BookingSuccess from '../views/BookingSuccess.vue'
-import BookingPaymentPending from '../views/BookingPaymentPending.vue'
+import BookingSuccess from '../views/booking/BookingSuccess.vue'
+import BookingPaymentPending from '../views/booking/BookingPaymentPending.vue'
 import ChinaEsim from '../views/ChinaEsim.vue'
 import NotFound from '../views/NotFound.vue'
 
@@ -40,9 +40,9 @@ const routes = [
     component: Home
   },
   {
-    path: '/search',
-    name: 'SearchResults',
-    component: SearchResults
+    path: '/trains/timetable',
+    name: 'TimeTable',
+    component: TimeTable
   },
   {
     path: '/my-bookings',
@@ -112,12 +112,12 @@ const routes = [
   {
     path: '/booking/create',
     name: 'BookingCreate',
-    component: () => import('../views/BookingCreate.vue')
+    component: () => import('../views/booking/BookingCreate.vue')
   },
   {
     path: '/trains/pay/',
     name: 'BookingPaymentPending',
-    component: () => import('@/views/BookingPaymentPending.vue'),
+    component: () => import('@/views/booking/BookingPaymentPending.vue'),
     meta: {
       title: 'Payment Confirmation'
     }
@@ -125,7 +125,7 @@ const routes = [
   {
     path: '/booking-success/:bookingId',
     name: 'BookingSuccess',
-    component: () => import('@/views/BookingSuccess.vue'),
+    component: () => import('@/views/booking/BookingSuccess.vue'),
     meta: {
       title: 'Booking Success'
     }

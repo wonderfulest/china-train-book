@@ -31,7 +31,7 @@ export default {
       if (this.searchQuery.trim()) {
         // Navigate to search results page with query
         this.$router.push({
-          name: 'SearchResults',
+          name: 'TimeTable',
           query: { q: this.searchQuery }
         })
       }

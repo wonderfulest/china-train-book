@@ -38,7 +38,7 @@ const querySearch = async (queryString, cb) => {
 
 const handleSearch = () => {
   router.push({
-    path: '/search',
+    path: '/trains/timetable',
     query: {
       from: fromStation.value?.stationCode,
       to: toStation.value?.stationCode,
