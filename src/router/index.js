@@ -12,12 +12,11 @@ import InternationalTrains from '../views/InternationalTrains.vue'
 import Flights from '../views/Flights.vue'
 import ChinaTrainGuide from '../views/ChinaTrainGuide.vue'
 import BookingGuide from '../views/BookingGuide.vue'
-import ChinaEsim from '../views/ChinaEsim.vue'
-import OrderCreate from '../views/OrderCreate.vue'
-import BookingCreate from '../views/BookingCreate.vue'
-import NotFound from '../views/NotFound.vue'
+import OrderCreate from '../views/orders/OrderCreate.vue'
 import BookingSuccess from '../views/BookingSuccess.vue'
 import BookingPaymentPending from '../views/BookingPaymentPending.vue'
+import ChinaEsim from '../views/ChinaEsim.vue'
+import NotFound from '../views/NotFound.vue'
 
 const routes = [
   {
@@ -96,19 +95,19 @@ const routes = [
     component: BookingGuide
   },
   {
-    path: '/china-esim',
-    name: 'ChinaEsim',
-    component: ChinaEsim
+    path: '/orders',
+    name: 'OrderList',
+    component: () => import('../views/orders/OrderList.vue')
   },
   {
-    path: '/create-order',
+    path: '/orders/create',
     name: 'OrderCreate',
-    component: OrderCreate
+    component: () => import('../views/orders/OrderCreate.vue')
   },
   {
-    path: '/trains/order',
-    name: 'order',
-    component: () => import('../views/OrderCreate.vue')
+    path: '/orders/pay',
+    name: 'OrderPay',
+    component: () => import('../views/orders/OrderPay.vue')
   },
   {
     path: '/booking/create',
@@ -135,7 +134,7 @@ const routes = [
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: NotFound
+    component: () => import('@/views/NotFound.vue')
   }
 ]
 
