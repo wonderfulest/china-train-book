@@ -13,7 +13,7 @@
             <el-menu-item 
               v-for="(step, index) in bookingSteps" 
               :key="step.path"
-              :index="step.path"
+              :index="{ path: step.path, query: $route.query }"
               :class="{ 'process-active': index === activeStep }"
             >
               <span class="step-number">{{ index + 1 }}</span>
@@ -52,6 +52,14 @@
             <el-option label="English" value="en" />
             <!-- <el-option label="简体中文" value="zh" /> -->
           </el-select>
+          <el-select v-model="currency" class="currency-select">
+            <el-option 
+              v-for="curr in currencyStore.supportedCurrencies" 
+              :key="curr.code" 
+              :label="curr.label" 
+              :value="curr.code" 
+            />
+          </el-select>
         </div>
       </nav>
     </div>
@@ -62,10 +70,12 @@
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useBookingStore } from '../stores/bookingProcess'
+import { useCurrencyStore } from '../stores/currencyStore'
 
 const language = ref('en')
 const route = useRoute()
 const bookingStore = useBookingStore()
+const currencyStore = useCurrencyStore()
 
 // 是否显示订单流程导航
 const isBookingFlow = computed(() => {
@@ -79,6 +89,12 @@ const bookingSteps = computed(() => bookingStore.steps)
 
 // 当前激活步骤
 const activeStep = computed(() => bookingStore.activeStep)
+
+// 货币选择
+const currency = computed({
+  get: () => currencyStore.currency,
+  set: (value) => currencyStore.setCurrency(value)
+})
 </script>
 
 <style scoped>
@@ -300,7 +316,8 @@ const activeStep = computed(() => bookingStore.activeStep)
   white-space: nowrap;
 }
 
-.language-select {
+.language-select,
+.currency-select {
   width: 120px;
 }
 

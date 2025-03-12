@@ -3,10 +3,10 @@ import { defineStore } from 'pinia'
 export const useBookingStore = defineStore('booking', {
   state: () => ({
     steps: [
-      { name: 'Search', path: '/trains/timetable' },
-      { name: 'Passenger Info', path: '/booking/passenger-info' },
+      { name: 'Search', path: '/' },
+      { name: 'Timetable', path: '/trains/timetable' },
+      { name: 'Passengers', path: '/booking/passenger-info' },
       { name: 'Payment', path: '/orders/pay' },
-      { name: 'Confirmation', path: '/booking-success' }
     ],
     activeStep: 0,
     searchParams: null

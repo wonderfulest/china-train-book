@@ -108,7 +108,7 @@
                 </div>
               </el-form>
             </div>
-            <el-button class="add-requests-button" icon="el-icon-plus">Add special requests</el-button>
+
             <div class="encryption-notice">
               <i class="el-icon-lock"></i>
               Your personal information is encrypted

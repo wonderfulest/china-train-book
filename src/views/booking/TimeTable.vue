@@ -115,7 +115,7 @@
             <!-- Price section as separate column -->
             <div class="price-section-column">
               <div class="from-price">
-                from <span class="price-value">${{ convertToUSD(train.minPrice) || 36 }}</span>
+                from <span class="price-value">{{ currencySymbol }}{{ convertPrice(train.minPrice) || 36 }}</span>
               </div>
               <div class="train-date">{{ formatDate(date) }}</div>
             </div>
@@ -166,8 +166,8 @@
 
                     <div class="dialog-seat-price-section" :class="{ 'selected-price-section': selectedSeatIndex === index }">
                       <div class="dialog-price">
-                        <div class="dialog-price-currency">$</div>
-                        <div class="dialog-price-amount">{{ convertToUSD(seat.price) }}</div>
+                        <div class="dialog-price-currency">{{ currencySymbol }}</div>
+                        <div class="dialog-price-amount">{{ convertPrice(seat.price) }}</div>
                       </div>
                       <div class="dialog-per-seat">Per seat</div>
                       <el-button v-if="selectedSeatIndex === index" type="primary" class="dialog-book-btn" @click="goToCreateOrder(train, seat)">Book</el-button>
@@ -179,7 +179,7 @@
 
             <div class="dialog-footer">
               <div class="dialog-total">
-                Total amount for 1 passenger: <span class="dialog-total-price">${{ selectedSeatIndex >= 0 && train.seats ? convertToUSD(train.seats[selectedSeatIndex].price) : convertToUSD(train.minPrice) }}</span>
+                Total amount for 1 passenger: <span class="dialog-total-price">{{ currencySymbol }}{{ selectedSeatIndex >= 0 && train.seats ? convertPrice(train.seats[selectedSeatIndex].price) : convertPrice(train.minPrice) }}</span>
               </div>
               <el-button type="primary" class="dialog-continue-btn" @click="goToCreateOrder(train, selectedSeatIndex >= 0 && train.seats ? train.seats[selectedSeatIndex] : train.seats[0])"> Continue <i class="el-icon-arrow-right"></i> </el-button>
             </div>
@@ -200,12 +200,15 @@ import { ElMessage } from "element-plus";
 import { getTicketList } from "@/api/modules/train";
 import { getExchangeRate } from "@/api/modules/exchange";
 import { useCityStore } from "@/stores/city";
+import { useCurrencyStore } from "@/stores/currencyStore";
 import { storeToRefs } from "pinia";
 
 const route = useRoute();
 const router = useRouter();
 const cityStore = useCityStore();
+const currencyStore = useCurrencyStore();
 const { allCities, hotCities } = storeToRefs(cityStore);
+const { currency, currencySymbol } = storeToRefs(currencyStore);
 
 // 转换城市数据格式
 const cities = computed(() =>
@@ -237,7 +240,7 @@ const departStation = ref("");
 const trains = ref([]);
 const loading = ref(false);
 const searchQuery = ref("");
-const exchangeRate = ref(null);
+const exchangeRates = ref({});
 const dialogVisible = ref(false);
 const selectedTrain = ref(null);
 const selectedSeatIndex = ref(0);
@@ -264,32 +267,35 @@ const selectedSeatImage = computed(() => {
 // 获取汇率
 const fetchExchangeRate = async () => {
   try {
-    // const response = await getExchangeRate('CNY', 'USD')
-    const response = {
-      code: "0",
-      message: null,
-      data: {
-        exchangeRate: {
-          fromCurrencyCode: "CNY",
-          fromCurrencyName: "Chinese Yuan",
-          toCurrencyCode: "USD",
-          toCurrencyName: "United States Dollar",
-          exchangeRate: "0.13810000",
-          lastRefreshed: "",
-          timeZone: "UTC",
-          bidPrice: "0.13809000",
-          askPrice: "0.13810000",
-        },
-      },
+    // 模拟汇率数据 - 实际应用中应该调用API
+    // 支持的货币: USD, CNY, EUR, SGD, JPY
+    const mockRates = {
+      USD: 0.13810000,
+      CNY: 1.0,
+      EUR: 0.12760000,
+      SGD: 0.18650000,
+      JPY: 20.8500000
     };
-    if (response.code === "0" && response.data?.exchangeRate) {
-      // 加上千分之五的汇差
-      const rate = parseFloat(response.data.exchangeRate.exchangeRate);
-      exchangeRate.value = rate * (1 - 0.005);
-    }
+    
+    // 设置所有汇率
+    exchangeRates.value = mockRates;
+    
+    // 实际API调用示例：
+    // 对于每种支持的货币，获取从CNY到该货币的汇率
+    // const currencies = ['USD', 'EUR', 'SGD', 'JPY'];
+    // for (const curr of currencies) {
+    //   if (curr !== 'CNY') { // CNY到CNY汇率为1
+    //     const response = await getExchangeRate('CNY', curr);
+    //     if (response.code === "0" && response.data?.exchangeRate) {
+    //       const rate = parseFloat(response.data.exchangeRate.exchangeRate);
+    //       exchangeRates.value[curr] = rate * (1 - 0.005); // 加上千分之五的汇差
+    //     }
+    //   }
+    // }
+    // exchangeRates.value['CNY'] = 1.0; // CNY到CNY汇率为1
   } catch (error) {
-    console.error("Failed to fetch exchange rate:", error);
-    ElMessage.error("Failed to load exchange rate data");
+    console.error("Failed to fetch exchange rates:", error);
+    ElMessage.error("无法加载汇率数据");
   }
 };
 
@@ -736,11 +742,15 @@ const disabledDate = (time) => {
   return time.getTime() < Date.now() - 8.64e7 || time.getTime() > Date.now() + 8.64e7 * 30; // 禁用今天之前和30天后的日期
 };
 
-// 转换价格从人民币到美元
-const convertToUSD = (cnyPrice) => {
-  if (!exchangeRate.value || !cnyPrice) return 0;
-  const usdPrice = parseFloat(cnyPrice) * exchangeRate.value;
-  return Math.ceil(usdPrice); // 向上取整到整数
+// 转换价格从人民币到当前选择的货币
+const convertPrice = (cnyPrice) => {
+  if (!exchangeRates.value || !cnyPrice) return 0;
+  const targetCurrency = currency.value;
+  const rate = exchangeRates.value[targetCurrency];
+  if (!rate) return 0;
+  
+  const convertedPrice = parseFloat(cnyPrice) * rate;
+  return Math.ceil(convertedPrice); // 向上取整到整数
 };
 
 // 格式化日期，例如 '20 March'
