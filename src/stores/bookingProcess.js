@@ -13,6 +13,7 @@ export const useBookingStore = defineStore('booking', {
   }),
   actions: {
     setActiveStep(index) {
+      console.log('Setting active step to:', index)
       this.activeStep = Math.max(0, Math.min(index, this.steps.length - 1))
     },
     setSearchParams(params) {

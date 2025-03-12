@@ -13,8 +13,14 @@
             <el-menu-item 
               v-for="(step, index) in bookingSteps" 
               :key="step.path"
-              :index="{ path: step.path, query: $route.query }"
-              :class="{ 'process-active': index === activeStep }"
+              :index="step.path"
+              :class="{
+                'process-active': index === activeStep,
+                'process-completed': index < activeStep,
+                'process-disabled': index > activeStep
+              }"
+              :disabled="index > activeStep"
+              @click="navigateWithQuery(step.path)"
             >
               <span class="step-number">{{ index + 1 }}</span>
               {{ step.name }}
@@ -68,14 +74,23 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useBookingStore } from '../stores/bookingProcess'
 import { useCurrencyStore } from '../stores/currencyStore'
 
 const language = ref('en')
 const route = useRoute()
+const router = useRouter()
 const bookingStore = useBookingStore()
 const currencyStore = useCurrencyStore()
+
+// 导航函数，保留查询参数
+const navigateWithQuery = (path) => {
+  router.push({
+    path,
+    query: route.query
+  })
+}
 
 // 是否显示订单流程导航
 const isBookingFlow = computed(() => {
@@ -238,6 +253,18 @@ const currency = computed({
   font-weight: bold !important;
 }
 
+.process-completed {
+  color: #303133 !important;
+  font-weight: 500 !important;
+}
+
+.process-disabled {
+  color: #909399 !important;
+  font-weight: 400 !important;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+}
+
 .step-number {
   display: inline-block;
   width: 24px;
@@ -250,6 +277,14 @@ const currency = computed({
   margin-right: 8px;
   font-size: 14px;
   font-weight: bold;
+}
+
+.process-completed .step-number {
+  background-color: #303133;
+}
+
+.process-disabled .step-number {
+  background-color: #909399;
 }
 
 .nav-menu :deep(.el-menu-item:hover),

@@ -32,17 +32,6 @@
         </div>
 
         <!-- Passenger Information Section -->
-        <div class="passenger-info-section">
-          <h2>Email for receiving e-tickets</h2>
-          <div class="email-input-section">
-            <p>Please provide a valid email address where we will send your electronic tickets.</p>
-            <el-input 
-              v-model="contactInfo.email" 
-              placeholder="Email" 
-              class="email-input"
-            />
-          </div>
-        </div>
 
         <!-- Contact Information Section -->
         <div class="passenger-details-section">
@@ -115,6 +104,87 @@
             </div>
           </div>
         </div>
+
+    <!-- Contact Information and Additional Options Section -->
+    <div class="contact-additional-section">
+      <div class="contact-options-section">
+        <h2>Contact & Additional Information</h2>
+        <div class="email-input-section">
+          <p>请您提供一个有效的电子邮件地址，我们会将电子车票发送给您。</p>
+          <el-input 
+            v-model="contactInfo.email" 
+            placeholder="电子邮件" 
+            class="email-input"
+          />
+        </div>
+
+        <div class="contact-form">
+          <h2>Additional Options</h2>
+          <el-form :model="contactInfo" label-position="top">
+            <div class="form-row">
+              <el-form-item label="Tel / Mobile (Optional):" class="form-item-full">
+                <el-input v-model="contactInfo.phone" placeholder="Phone number" />
+              </el-form-item>
+            </div>
+          </el-form>
+
+          <div class="option-section">
+            <h3>In case the selected tickets are not available, I would like to</h3>
+            <el-radio-group v-model="unavailableOption">
+              <div class="radio-item">
+                <el-radio label="upgrade">upgrade to higher class</el-radio>
+              </div>
+              <div class="radio-item">
+                <el-radio label="downgrade">downgrade to lower class</el-radio>
+              </div>
+              <div class="radio-item">
+                <el-radio label="switch">switch to an alternative train operating on a similar timetable within 1 hour</el-radio>
+              </div>
+              <div class="radio-item">
+                <el-radio label="cancel">cancel and refund</el-radio>
+              </div>
+            </el-radio-group>
+          </div>
+
+          <div class="option-section">
+            <h3>Upgrade to refundable booking (recommended)</h3>
+            <p class="upgrade-info">
+              Upgrade your booking for {{ formatPrice(9.26) }} and receive a FULL refund ({{ formatPrice(97.50) }}) if you cannot attend and can evidence one of the many reasons in our 
+              <el-link type="primary" href="#" @click.prevent>Terms and Conditions</el-link>, 
+              which you accept when you select a Refundable Booking. 
+              <el-link type="primary" href="#" @click.prevent>See more</el-link>.
+            </p>
+            <el-radio-group v-model="refundableOption">
+              <div class="radio-item">
+                <el-radio label="yes">
+                  Yes, Upgrade my booking. (+{{ formatPrice(9.26) }})
+                  <el-tag size="small" type="danger" effect="light">recommended</el-tag>
+                </el-radio>
+              </div>
+              <div class="radio-item">
+                <el-radio label="no">No, keep my book non-refundable.</el-radio>
+              </div>
+            </el-radio-group>
+          </div>
+
+          <div class="option-section">
+            <h3>How to receive tickets?</h3>
+            <el-radio-group v-model="receiveOption">
+              <div class="radio-item">
+                <el-radio label="email">Receive e-ticket by email</el-radio>
+              </div>
+            </el-radio-group>
+          </div>
+
+          <div class="terms-section">
+            <el-checkbox v-model="agreeToTerms">
+              I have read and agree to the 
+              <el-link type="primary" href="#" @click.prevent>Terms and Conditions</el-link>
+            </el-checkbox>
+          </div>
+        </div>
+      </div>
+    </div>
       </div>
 
       <!-- Right column: Order summary and payment info -->
@@ -184,6 +254,9 @@
         </div>
       </div>
     </div>
+
+
+    
     <div class="page-actions">
       <el-button type="primary" class="continue-button-mobile" @click="proceedToPayment">Continue</el-button>
     </div>
@@ -197,12 +270,53 @@ import { ElMessage } from 'element-plus'
 import { usePassengerStore } from '@/stores/passenger'
 import { useOrderStore } from '@/stores/order'
 import { useBookingStore } from '@/stores/bookingProcess'
+import { useCurrencyStore } from '@/stores/currencyStore'
 
 const route = useRoute()
 const router = useRouter()
 const passengerStore = usePassengerStore()
 const orderStore = useOrderStore()
 const bookingStore = useBookingStore()
+const currencyStore = useCurrencyStore()
+
+// 汇率数据
+const exchangeRates = ref(null)
+
+// 获取汇率数据
+const fetchExchangeRates = async () => {
+  try {
+    // 模拟API调用，实际项目中应该从真实API获取汇率
+    // 这里使用模拟数据，假设1人民币等于：
+    exchangeRates.value = {
+      CNY: 1,      // 人民币
+      USD: 0.14,   // 美元
+      EUR: 0.13,   // 欧元
+      SGD: 0.19,   // 新加坡元
+      JPY: 20.85   // 日元
+    }
+  } catch (error) {
+    console.error('获取汇率失败:', error)
+    // 设置默认汇率，以防API调用失败
+    exchangeRates.value = {
+      CNY: 1,
+      USD: 0.14,
+      EUR: 0.13,
+      SGD: 0.19,
+      JPY: 20.85
+    }
+  }
+}
+
+// 转换价格从人民币到当前选择的货币
+const convertPrice = (cnyPrice) => {
+  if (!exchangeRates.value || !cnyPrice) return 0
+  const targetCurrency = currencyStore.currency
+  const rate = exchangeRates.value[targetCurrency]
+  if (!rate) return 0
+  
+  const convertedPrice = parseFloat(cnyPrice) * rate
+  return Math.ceil(convertedPrice) // 向上取整到整数
+}
 
 // Journey info from route or store
 const ticketInfo = ref({
@@ -240,7 +354,9 @@ function formatDay(dateString) {
 }
 
 function formatPrice(price) {
-  return `$${price}`
+  // 先转换价格，再添加货币符号
+  const convertedPrice = convertPrice(price)
+  return `${currencyStore.currencySymbol}${convertedPrice}`
 }
 
 function getTrainType(trainNo) {
@@ -272,8 +388,18 @@ const passengerInfo = ref({
 
 // Contact information
 const contactInfo = ref({
-  email: ''
+  title: 'Mr',
+  name: '',
+  email: '',
+  confirmEmail: '',
+  phone: ''
 })
+
+// Additional options
+const unavailableOption = ref('upgrade')
+const refundableOption = ref('yes')
+const receiveOption = ref('email')
+const agreeToTerms = ref(false)
 
 // Order summary calculation
 const orderSummary = computed(() => {
@@ -326,6 +452,11 @@ function validateForm() {
   }
   
   // Validate contact info
+  if (!contactInfo.value.name) {
+    ElMessage.error('Please provide your name')
+    return false
+  }
+  
   if (!contactInfo.value.email) {
     ElMessage.error('Please provide an email address for receiving tickets')
     return false
@@ -335,6 +466,24 @@ function validateForm() {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(contactInfo.value.email)) {
     ElMessage.error('Please provide a valid email address')
+    return false
+  }
+  
+  // Confirm email validation
+  if (contactInfo.value.email !== contactInfo.value.confirmEmail) {
+    ElMessage.error('Email addresses do not match')
+    return false
+  }
+  
+  // Phone validation
+  if (!contactInfo.value.phone) {
+    ElMessage.error('Please provide a phone number')
+    return false
+  }
+  
+  // Terms validation
+  if (!agreeToTerms.value) {
+    ElMessage.error('Please agree to the Terms and Conditions')
     return false
   }
   
@@ -349,6 +498,12 @@ function saveOrderData() {
     id: Date.now().toString() // Generate a unique ID
   })
   
+  // Calculate additional costs
+  let additionalCost = 0
+  if (refundableOption.value === 'yes') {
+    additionalCost += 9.26 // Refundable booking fee
+  }
+  
   // Create order data
   const orderData = {
     id: Date.now().toString(),
@@ -360,8 +515,20 @@ function saveOrderData() {
     date: ticketInfo.value.date,
     seatType: ticketInfo.value.seatType,
     price: ticketInfo.value.price,
+    additionalCost: additionalCost,
+    totalPrice: ticketInfo.value.price + additionalCost,
     passengerIds: [passengerStore.passengers[passengerStore.passengers.length - 1].id],
-    contactEmail: contactInfo.value.email,
+    contactInfo: {
+      title: contactInfo.value.title,
+      name: contactInfo.value.name,
+      email: contactInfo.value.email,
+      phone: contactInfo.value.phone
+    },
+    options: {
+      unavailableOption: unavailableOption.value,
+      refundableOption: refundableOption.value,
+      receiveOption: receiveOption.value
+    },
     status: 'pending'
   }
   
@@ -385,6 +552,9 @@ function proceedToPayment() {
 }
 
 onMounted(() => {
+  // 获取汇率数据
+  fetchExchangeRates()
+  
   // Initialize data if coming from previous step
   // Verify we have the required booking data
   const hasRequiredData = ticketInfo.value.trainNo && 
@@ -399,7 +569,7 @@ onMounted(() => {
   }
   
   // Update the step in the booking process store
-  bookingStore.setActiveStep(1) // Set to step 1 (0-based index) in the 4-step process
+  bookingStore.setActiveStep(2) // Set to step 2 (0-based index) in the 4-step process
 })
 </script>
 
@@ -409,6 +579,9 @@ onMounted(() => {
   margin: 0 auto;
   padding: 20px;
   font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .passenger-info-container {
@@ -752,11 +925,76 @@ h2 {
   display: none;
 }
 
+/* Contact and Additional Options Sections */
+.contact-additional-section {
+  margin-top: 20px;
+}
+
+.contact-options-section {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.email-input-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.email-input-section p {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.name-input-group {
+  display: flex;
+  gap: 10px;
+}
+
+.title-select {
+  width: 80px;
+}
+
+.option-section {
+  margin-bottom: 20px;
+}
+
+.option-section h3 {
+  font-size: 16px;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.radio-item {
+  margin-bottom: 8px;
+}
+
+.upgrade-info {
+  background-color: #f5f7fa;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.terms-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e4e7ed;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .passenger-info-container {
     flex-direction: column;
   }
+  
+
   
   .page-actions {
     display: block;

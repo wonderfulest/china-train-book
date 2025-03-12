@@ -765,10 +765,11 @@ const formatDate = (dateString) => {
   }
 };
 
-// 跳转到创建订单页面
+// 跳转到乘客信息页面
 const goToCreateOrder = (train, seat) => {
   // 更新订单流程参数并设置下一步
   const bookingStore = useBookingStore();
+  console.log("train, seat", from.value, to.value, date.value, train, seat);
   bookingStore.setSearchParams({
     from: from.value,
     to: to.value,
