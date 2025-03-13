@@ -84,19 +84,30 @@ const router = useRouter()
 const bookingStore = useBookingStore()
 const currencyStore = useCurrencyStore()
 
-// 导航函数，保留查询参数
+// 导航函数，使用orderId替换路径中的占位符
 const navigateWithQuery = (path) => {
-  router.push({
-    path,
-    query: route.query
-  })
+  // 如果路径中包含orderId占位符，则替换为实际的orderId
+  if (path.includes(':orderId')) {
+    // 确保有orderId，如果没有则使用路由参数中的orderId
+    const orderId = bookingStore.orderId || route.params.orderId
+    
+    if (orderId) {
+      const actualPath = path.replace(':orderId', orderId)
+      router.push(actualPath)
+      return
+    }
+  }
+  
+  // 如果没有orderId或路径中不包含orderId，直接跳转
+  router.push(path)
 }
 
 // 是否显示订单流程导航
 const isBookingFlow = computed(() => {
   return route.path === '/trains/timetable' || 
          route.path.startsWith('/booking/') || 
-         route.path.startsWith('/orders/')
+         route.path.startsWith('/orders/') || 
+         route.path.startsWith('/trains/order')
 })
 
 // 订单流程步骤

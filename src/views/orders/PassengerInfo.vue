@@ -51,18 +51,15 @@
                 <div class="form-row">
                   <el-form-item label="Passenger Type" class="form-item-type">
                     <el-radio-group v-model="passengerInfo.type">
-                      <el-radio label="Adult">Adult</el-radio>
-                      <el-radio label="Child">Child <span class="type-hint">(under 14 years old)</span></el-radio>
+                      <el-radio :value="'Adult'">Adult</el-radio>
+                      <el-radio :value="'Child'">Child <span class="type-hint">(under 14 years old)</span></el-radio>
                     </el-radio-group>
                   </el-form-item>
                 </div>
                 
                 <div class="form-row">
-                  <el-form-item label="Surname" class="form-item-half">
-                    <el-input v-model="passengerInfo.surname" placeholder="As shown on passport" />
-                  </el-form-item>
-                  <el-form-item label="Given Name" class="form-item-half">
-                    <el-input v-model="passengerInfo.givenName" placeholder="As shown on passport" />
+                  <el-form-item label="Passport Name" class="form-item-full">
+                    <el-input v-model="passengerInfo.passport_name" placeholder="Full name as shown on passport" />
                   </el-form-item>
                 </div>
                 
@@ -111,11 +108,27 @@
         <h2>Contact & Additional Information</h2>
         <div class="email-input-section">
           <p>请您提供一个有效的电子邮件地址，我们会将电子车票发送给您。</p>
-          <el-input 
-            v-model="contactInfo.email" 
-            placeholder="电子邮件" 
-            class="email-input"
-          />
+          <el-form :model="contactInfo" label-position="top">
+            <div class="form-row">
+              <el-form-item label="电子邮件" class="form-item-full">
+                <el-input 
+                  v-model="contactInfo.email" 
+                  placeholder="电子邮件" 
+                  class="email-input"
+                  @blur="showConfirmEmail = true"
+                />
+              </el-form-item>
+            </div>
+            <div class="form-row" v-if="showConfirmEmail && contactInfo.email">
+              <el-form-item label="确认电子邮件" class="form-item-full">
+                <el-input 
+                  v-model="contactInfo.confirmEmail" 
+                  placeholder="请再次输入电子邮件以确认" 
+                  class="email-input"
+                />
+              </el-form-item>
+            </div>
+          </el-form>
         </div>
 
         <div class="contact-form">
@@ -132,16 +145,16 @@
             <h3>In case the selected tickets are not available, I would like to</h3>
             <el-radio-group v-model="unavailableOption">
               <div class="radio-item">
-                <el-radio label="upgrade">upgrade to higher class</el-radio>
+                <el-radio :value="'upgrade'">upgrade to higher class</el-radio>
               </div>
               <div class="radio-item">
-                <el-radio label="downgrade">downgrade to lower class</el-radio>
+                <el-radio :value="'downgrade'">downgrade to lower class</el-radio>
               </div>
               <div class="radio-item">
-                <el-radio label="switch">switch to an alternative train operating on a similar timetable within 1 hour</el-radio>
+                <el-radio :value="'switch'">switch to an alternative train operating on a similar timetable within 1 hour</el-radio>
               </div>
               <div class="radio-item">
-                <el-radio label="cancel">cancel and refund</el-radio>
+                <el-radio :value="'cancel'">cancel and refund</el-radio>
               </div>
             </el-radio-group>
           </div>
@@ -156,13 +169,13 @@
             </p>
             <el-radio-group v-model="refundableOption">
               <div class="radio-item">
-                <el-radio label="yes">
+                <el-radio :value="'yes'">
                   Yes, Upgrade my booking. (+{{ formatPrice(9.26) }})
                   <el-tag size="small" type="danger" effect="light">recommended</el-tag>
                 </el-radio>
               </div>
               <div class="radio-item">
-                <el-radio label="no">No, keep my book non-refundable.</el-radio>
+                <el-radio :value="'no'">No, keep my book non-refundable.</el-radio>
               </div>
             </el-radio-group>
           </div>
@@ -171,7 +184,7 @@
             <h3>How to receive tickets?</h3>
             <el-radio-group v-model="receiveOption">
               <div class="radio-item">
-                <el-radio label="email">Receive e-ticket by email</el-radio>
+                <el-radio :value="'email'">Receive e-ticket by email</el-radio>
               </div>
             </el-radio-group>
           </div>
@@ -254,8 +267,6 @@
         </div>
       </div>
     </div>
-
-
     
     <div class="page-actions">
       <el-button type="primary" class="continue-button-mobile" @click="proceedToPayment">Continue</el-button>
@@ -266,16 +277,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElLoading } from 'element-plus'
 import { usePassengerStore } from '@/stores/passenger'
-import { useOrderStore } from '@/stores/order'
 import { useBookingStore } from '@/stores/bookingProcess'
 import { useCurrencyStore } from '@/stores/currencyStore'
+import { getOrderPassengers, updateOrderPassengers } from '@/api/modules/orders'
 
 const route = useRoute()
 const router = useRouter()
 const passengerStore = usePassengerStore()
-const orderStore = useOrderStore()
 const bookingStore = useBookingStore()
 const currencyStore = useCurrencyStore()
 
@@ -318,17 +328,17 @@ const convertPrice = (cnyPrice) => {
   return Math.ceil(convertedPrice) // 向上取整到整数
 }
 
-// Journey info from route or store
+// Journey info from store
 const ticketInfo = ref({
-  trainNo: route.query.trainNo || '',
-  from: route.query.from || '',
-  to: route.query.to || '',
-  departTime: route.query.departTime || '',
-  arriveTime: route.query.arriveTime || '',
-  duration: route.query.duration || '',
-  seatType: route.query.seatType || '',
-  price: parseFloat(route.query.price) || 0,
-  date: route.query.date || ''
+  trainNo: '',
+  from: '',
+  to: '',
+  departTime: '',
+  arriveTime: '',
+  duration: '',
+  seatType: '',
+  price: 0,
+  date: ''
 })
 
 // Station details for display
@@ -377,8 +387,7 @@ function getTrainType(trainNo) {
 // Passenger information
 const passengerInfo = ref({
   type: 'Adult',
-  surname: '',
-  givenName: '',
+  passport_name: '',
   gender: '',
   birthday: '',
   passportNumber: '',
@@ -400,6 +409,9 @@ const unavailableOption = ref('upgrade')
 const refundableOption = ref('yes')
 const receiveOption = ref('email')
 const agreeToTerms = ref(false)
+
+// 控制是否显示确认邮箱字段
+const showConfirmEmail = ref(false)
 
 // Order summary calculation
 const orderSummary = computed(() => {
@@ -429,8 +441,7 @@ const countries = ref([
 
 // Form validation rules
 const rules = {
-  surname: [{ required: true, message: 'Please enter surname', trigger: 'blur' }],
-  givenName: [{ required: true, message: 'Please enter given name', trigger: 'blur' }],
+  passport_name: [{ required: true, message: 'Please enter full passport name', trigger: 'blur' }],
   gender: [{ required: true, message: 'Please select gender', trigger: 'change' }],
   birthday: [{ required: true, message: 'Please select birthday', trigger: 'change' }],
   passportNumber: [{ required: true, message: 'Please enter passport number', trigger: 'blur' }],
@@ -441,19 +452,13 @@ const rules = {
 // Validate form data
 function validateForm() {
   // Validate passenger info
-  if (!passengerInfo.value.surname || !passengerInfo.value.givenName) {
-    ElMessage.error('Please complete passenger name information')
+  if (!passengerInfo.value.passport_name) {
+    ElMessage.error('Please enter passenger passport name')
     return false
   }
   
   if (!passengerInfo.value.passportNumber || !passengerInfo.value.country) {
     ElMessage.error('Please complete passport information')
-    return false
-  }
-  
-  // Validate contact info
-  if (!contactInfo.value.name) {
-    ElMessage.error('Please provide your name')
     return false
   }
   
@@ -470,8 +475,8 @@ function validateForm() {
   }
   
   // Confirm email validation
-  if (contactInfo.value.email !== contactInfo.value.confirmEmail) {
-    ElMessage.error('Email addresses do not match')
+  if (contactInfo.value.email && contactInfo.value.confirmEmail && contactInfo.value.email !== contactInfo.value.confirmEmail) {
+    ElMessage.error('邮箱地址不匹配')
     return false
   }
   
@@ -490,64 +495,188 @@ function validateForm() {
   return true
 }
 
-// Save passenger and order information to stores
-function saveOrderData() {
-  // Save passenger to store
+// 保存乘客和订单信息
+async function saveOrderData() {
+  // 保存乘客到store
   passengerStore.addPassenger({
-    ...passengerInfo.value,
-    id: Date.now().toString() // Generate a unique ID
+    ...passengerInfo.value
   })
   
-  // Calculate additional costs
+  // 计算额外费用
   let additionalCost = 0
   if (refundableOption.value === 'yes') {
-    additionalCost += 9.26 // Refundable booking fee
+    additionalCost += 9.26 // 可退款预订费
   }
   
-  // Create order data
-  const orderData = {
-    id: Date.now().toString(),
-    trainNo: ticketInfo.value.trainNo,
-    from: ticketInfo.value.from,
-    to: ticketInfo.value.to,
-    departTime: ticketInfo.value.departTime,
-    arriveTime: ticketInfo.value.arriveTime,
-    date: ticketInfo.value.date,
-    seatType: ticketInfo.value.seatType,
-    price: ticketInfo.value.price,
-    additionalCost: additionalCost,
-    totalPrice: ticketInfo.value.price + additionalCost,
-    passengerIds: [passengerStore.passengers[passengerStore.passengers.length - 1].id],
-    contactInfo: {
-      title: contactInfo.value.title,
-      name: contactInfo.value.name,
-      email: contactInfo.value.email,
-      phone: contactInfo.value.phone
-    },
-    options: {
-      unavailableOption: unavailableOption.value,
-      refundableOption: refundableOption.value,
-      receiveOption: receiveOption.value
-    },
-    status: 'pending'
+  // 如果有订单ID，则更新订单乘客信息
+  if (orderId.value) {
+    try {
+      // 计算价格
+      const price = 10 // 基础价格
+      const fee = 8 // 服务费
+      const price_total = price + fee
+      
+      // 准备完整的订单数据
+      const orderUpdateData = {
+        trainNo: ticketInfo.value.trainNo,
+        from: ticketInfo.value.from,
+        to: ticketInfo.value.to,
+        seatType: ticketInfo.value.seatType,
+        departTime: ticketInfo.value.departTime,
+        arriveTime: ticketInfo.value.arriveTime,
+        passengers: [
+          {
+            type: passengerInfo.value.type,
+            passport_name: passengerInfo.value.passport_name,
+            gender: passengerInfo.value.gender,
+            birthday: passengerInfo.value.birthday,
+            passportNumber: passengerInfo.value.passportNumber,
+            passportExpiry: passengerInfo.value.passportExpiry,
+            country: passengerInfo.value.country,
+            price: price,
+            fee: fee,
+            price_total: price_total
+          }
+        ],
+        price_amount: price_total,
+        contact: {
+          title: contactInfo.value.title,
+          name: contactInfo.value.name || passengerInfo.value.passport_name, // 如果没有联系人姓名，使用乘客姓名
+          email: contactInfo.value.email,
+          confirmEmail: contactInfo.value.confirmEmail,
+          phone: contactInfo.value.phone,
+          unavailableOption: unavailableOption.value,
+          refundableOption: refundableOption.value,
+          receiveOption: receiveOption.value
+        }
+      }
+      
+      // 调用API更新订单乘客信息
+      await updateOrderPassengers(orderId.value, orderUpdateData)
+    } catch (error) {
+      console.error('更新乘客信息失败:', error)
+      ElMessage.error('更新乘客信息失败，请重试')
+      return false
+    }
   }
-  
-  // Save order to store
-  orderStore.setCurrentOrder(orderData)
   
   return true
 }
 
-// Navigation functions
-function proceedToPayment() {
+// 导航函数
+async function proceedToPayment() {
   if (!validateForm()) return
   
-  if (saveOrderData()) {
-    // Set the next step in the booking process
-    bookingStore.setActiveStep(2) // Move to payment step (index 2)
+  const loading = ElLoading.service({
+    lock: true,
+    text: '保存乘客信息...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+  
+  try {
+    if (await saveOrderData()) {
+      // 设置订单流程的下一步
+      bookingStore.setActiveStep(3) // 移动到支付步骤（索引3）
+      
+      // 导航到支付页面
+      if (orderId.value) {
+        router.push(`/trains/order/${orderId.value}/pay`)
+      } else {
+        router.push('/orders/pay')
+      }
+    }
+  } catch (error) {
+    console.error('处理支付失败:', error)
+    ElMessage.error('处理支付失败，请重试')
+  } finally {
+    loading.close()
+  }
+}
+
+// 获取订单ID
+const orderId = computed(() => route.params.orderId)
+
+// 乘客信息页面初始化
+
+// 加载订单乘客信息
+const loadOrderPassengers = async () => {
+  if (!orderId.value) return
+  
+  const loading = ElLoading.service({
+    lock: true,
+    text: '加载乘客信息...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+  
+  try {
+    // 尝试从 store 中获取车票信息
+    const storeTicketInfo = bookingStore.getTicketInfo()
     
-    // Navigate to payment page
-    router.push('/orders/pay')
+    if (storeTicketInfo) {
+      // 如果 store 中有车票信息，直接使用
+      ticketInfo.value = storeTicketInfo
+    } else {
+      // 如果 store 中没有，则从 API 获取
+      const response = await getOrderPassengers(orderId.value)
+      const orderData = response.data
+      
+      // 更新车票信息
+      ticketInfo.value = {
+        trainNo: orderData.trainNo || '',
+        from: orderData.from || '',
+        to: orderData.to || '',
+        departTime: orderData.departTime || '',
+        arriveTime: orderData.arriveTime || '',
+        duration: orderData.duration || '',
+        seatType: orderData.seatType || '',
+        price: parseFloat(orderData.priceAmount) || 0,
+        date: orderData.date || ''
+      }
+      
+      // 将车票信息保存到 store
+      bookingStore.setTicketInfo(ticketInfo.value)
+      
+      // 如果有乘客信息，则填充表单
+      if (orderData.passengers && orderData.passengers.length > 0) {
+        const passenger = orderData.passengers[0]
+        passengerInfo.value = {
+          type: passenger.type || 'Adult',
+          passport_name: passenger.passport_name || '',
+          gender: passenger.gender || '',
+          birthday: passenger.birthday || '',
+          passportNumber: passenger.passportNumber || '',
+          passportExpiry: passenger.passportExpiry || '',
+          country: passenger.country || ''
+        }
+      }
+      
+      // 如果有联系人信息，则填充表单
+      if (orderData.contact) {
+        contactInfo.value = {
+          title: orderData.contact.title || 'Mr',
+          name: orderData.contact.name || '',
+          email: orderData.contact.email || '',
+          confirmEmail: orderData.contact.confirmEmail || '',
+          phone: orderData.contact.phone || ''
+        }
+        
+        // 填充其他选项
+        if (orderData.contact.unavailableOption) {
+          unavailableOption.value = orderData.contact.unavailableOption
+        }
+        if (orderData.contact.refundableOption) {
+          refundableOption.value = orderData.contact.refundableOption
+        }
+        if (orderData.contact.receiveOption) {
+          receiveOption.value = orderData.contact.receiveOption
+        }
+      }
+    }
+  } catch (error) {
+    console.error('获取乘客信息失败:', error)
+    ElMessage.error('获取乘客信息失败，请重试')
+  } finally {
+    loading.close()
   }
 }
 
@@ -555,21 +684,39 @@ onMounted(() => {
   // 获取汇率数据
   fetchExchangeRates()
   
-  // Initialize data if coming from previous step
-  // Verify we have the required booking data
+  // 加载订单乘客信息
+  loadOrderPassengers()
+  
+  // 如果是从路由参数获取的订单信息
+  if (route.query && Object.keys(route.query).length > 0) {
+    // 从路由参数填充车票信息
+    ticketInfo.value = {
+      trainNo: route.query.trainNo || '',
+      from: route.query.from || '',
+      to: route.query.to || '',
+      departTime: route.query.departTime || '',
+      arriveTime: route.query.arriveTime || '',
+      duration: route.query.duration || '',
+      seatType: route.query.seatType || '',
+      price: parseFloat(route.query.price) || 0,
+      date: route.query.date || ''
+    }
+  }
+  
+  // 验证是否有必要的数据
   const hasRequiredData = ticketInfo.value.trainNo && 
                           ticketInfo.value.from && 
                           ticketInfo.value.to && 
                           ticketInfo.value.date
   
-  if (!hasRequiredData) {
-    // Redirect to timetable if missing required data
-    ElMessage.warning('Missing train information. Please select a train first.')
+  if (!hasRequiredData && !orderId.value) {
+    // 如果没有必要的数据且没有订单ID，则重定向到时刻表页面
+    ElMessage.warning('缺少列车信息，请先选择一个列车')
     router.push('/trains/timetable')
   }
   
-  // Update the step in the booking process store
-  bookingStore.setActiveStep(2) // Set to step 2 (0-based index) in the 4-step process
+  // 更新订单流程中的步骤
+  bookingStore.setActiveStep(2) // 设置为第2步（基于0的索引）
 })
 </script>
 
@@ -721,7 +868,8 @@ h2 {
   flex: 1;
 }
 
-.form-item-type {
+.form-item-type,
+.form-item-full {
   width: 100%;
 }
 

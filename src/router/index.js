@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
-import TimeTable from '../views/booking/TimeTable.vue'
+import TimeTable from '../views/orders/TimeTable.vue'
 import MyBookings from '../views/MyBookings.vue'
 import ContactUs from '../views/ContactUs.vue'
 import TravelGuide from '../views/TravelGuide.vue'
@@ -12,9 +12,8 @@ import InternationalTrains from '../views/InternationalTrains.vue'
 import Flights from '../views/Flights.vue'
 import ChinaTrainGuide from '../views/ChinaTrainGuide.vue'
 import BookingGuide from '../views/BookingGuide.vue'
-import OrderCreate from '../views/orders/OrderCreate.vue'
-import BookingSuccess from '../views/booking/BookingSuccess.vue'
-import BookingPaymentPending from '../views/booking/BookingPaymentPending.vue'
+import BookingSuccess from '../views/orders/BookingSuccess.vue'
+import BookingPaymentPending from '../views/orders/BookingPaymentPending.vue'
 import ChinaEsim from '../views/ChinaEsim.vue'
 import NotFound from '../views/NotFound.vue'
 
@@ -40,17 +39,21 @@ const routes = [
     component: Home
   },
   {
-    path: '/trains/timetable',
-    name: 'TimeTable',
-    component: TimeTable
-  },
-  {
     path: '/trains/order/:orderId/timetable',
     name: 'OrderTimeTable',
     component: TimeTable,
     meta: {
       title: '列车时刻表',
       step: 1 // 对应四步导航系统中的第二步
+    }
+  },
+  {
+    path: '/trains/order/:orderId/passengers',
+    name: 'OrderPassengerInfo',
+    component: () => import('../views/orders/PassengerInfo.vue'),
+    meta: {
+      title: '乘客信息',
+      step: 2 // 对应四步导航系统中的第三步
     }
   },
   {
@@ -104,38 +107,9 @@ const routes = [
     component: BookingGuide
   },
   {
-    path: '/orders',
-    name: 'OrderList',
-    component: () => import('../views/orders/OrderList.vue')
-  },
-  {
-    path: '/booking/passenger-info',
-    name: 'PassengerInfo',
-    component: () => import('../views/booking/PassengerInfo.vue'),
-    meta: {
-      title: 'Passenger Information',
-      step: 2 // For the 4-step navigation system
-    }
-  },
-  {
-    path: '/orders/create',
-    name: 'OrderCreate',
-    component: () => import('../views/orders/OrderCreate.vue')
-  },
-  {
-    path: '/orders/pay',
-    name: 'OrderPay',
-    component: () => import('../views/orders/OrderPay.vue')
-  },
-  {
-    path: '/booking/create',
-    name: 'BookingCreate',
-    component: () => import('../views/booking/BookingCreate.vue')
-  },
-  {
     path: '/trains/pay/',
     name: 'BookingPaymentPending',
-    component: () => import('@/views/booking/BookingPaymentPending.vue'),
+    component: () => import('@/views/orders/BookingPaymentPending.vue'),
     meta: {
       title: 'Payment Confirmation'
     }
@@ -143,7 +117,7 @@ const routes = [
   {
     path: '/booking-success/:bookingId',
     name: 'BookingSuccess',
-    component: () => import('@/views/booking/BookingSuccess.vue'),
+    component: () => import('@/views/orders/BookingSuccess.vue'),
     meta: {
       title: 'Booking Success'
     }

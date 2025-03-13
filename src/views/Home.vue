@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <section class="hero-section" :style="{ backgroundImage: 'url(/src/assets/pic-banner01.webp)' }">
+    <section class="hero-section" :style="{ backgroundImage: 'url(/src/assets/high-speed-train.jpg)' }">
       <div class="search-container">
         <SearchCard />
       </div>
@@ -11,7 +11,7 @@
 </template>
 
 <script setup>
-import SearchCard from '@/views/booking/SearchCard.vue'
+import SearchCard from '@/views/orders/SearchCard.vue'
 import FeatureSection from '@/components/Home/FeatureSection.vue'
 import PopularRoutes from '@/components/Home/PopularRoutes.vue'
 import { ref, onMounted } from 'vue'
@@ -50,7 +50,7 @@ const handleSearch = () => {
 
 <style scoped>
 .hero-section {
-  min-height: 100vh;
+  min-height: 60vh;
   width: 100%;
   background-size: cover;
   background-position: center;
@@ -66,21 +66,26 @@ const handleSearch = () => {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7));
 }
 
 .search-container {
   width: 100%;
-  max-width: 800px;
+  max-width: 1000px;
   position: relative;
   z-index: 1;
   padding: 0 24px;
+  margin-top: -40px;
 }
 
 @media (max-width: 768px) {
   .hero-section {
-    min-height: auto;
-    padding: 40px 0;
+    min-height: 40vh;
+    padding: 60px 0;
+  }
+  
+  .search-container {
+    margin-top: 0;
   }
 }
 </style>

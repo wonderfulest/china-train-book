@@ -20,15 +20,15 @@
           <ul class="contact-info">
             <li>
               <el-icon><Location /></el-icon>
-              <span>123 Railway Street, Beijing, China</span>
+              <span>Harju maakond, Tallinn, Kesklinna linnaosa, Ahtri tn 12, 15551, 爱沙尼亚</span>
             </li>
             <li>
               <el-icon><Message /></el-icon>
-              <span>support@chinatrainbook.com</span>
+              <span>289869876@qq.com</span>
             </li>
             <li>
               <el-icon><Phone /></el-icon>
-              <span>+86 10 1234 5678</span>
+              <span>（+86）18801464879</span>
             </li>
           </ul>
         </div>
@@ -53,7 +53,7 @@
           </div>
         </div>
         <div class="copyright">
-          <p>&copy; {{ new Date().getFullYear() }} China Train Book. All rights reserved.</p>
+          <p>&copy; {{ new Date().getFullYear() }} WuKong OÜ. All rights reserved.</p>
         </div>
       </div>
     </div>
@@ -68,9 +68,9 @@ import { Location, Message, Phone, Share, Connection, ChatDotRound } from '@elem
 .footer {
   background-color: #1a1a1a;
   color: #fff;
-  padding: 80px 0 40px;
+  padding: 40px 0 20px;
   margin-top: auto;
-  height: 100%;
+  height: auto;
 }
 
 .footer-content {
@@ -82,15 +82,15 @@ import { Location, Message, Phone, Share, Connection, ChatDotRound } from '@elem
 .footer-sections {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 40px;
-  margin-bottom: 60px;
+  gap: 30px;
+  margin-bottom: 30px;
 }
 
 .footer-section h3 {
   color: #fff;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   position: relative;
 }
 
@@ -116,7 +116,7 @@ import { Location, Message, Phone, Share, Connection, ChatDotRound } from '@elem
 }
 
 .footer-section ul li {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .footer-section ul li a {
@@ -209,7 +209,7 @@ import { Location, Message, Phone, Share, Connection, ChatDotRound } from '@elem
 
 @media (max-width: 768px) {
   .footer {
-    padding: 60px 0 32px;
+    padding: 30px 0 20px;
   }
   
   .footer-sections {

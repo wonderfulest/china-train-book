@@ -62,3 +62,21 @@ export const paymentCallback = (bookingId) => {
     params: { bookingId },
   });
 };
+
+// 获取订单乘客信息
+export const getOrderPassengers = (orderId) => {
+  return request({
+    url: `/orders/${orderId}/passengers`,
+    method: 'post',
+    data: {}
+  });
+};
+
+// 更新订单乘客信息
+export const updateOrderPassengers = (orderId, passengerData) => {
+  return request({
+    url: `/orders/${orderId}/passengers/update`,
+    method: 'post',
+    data: passengerData
+  });
+};

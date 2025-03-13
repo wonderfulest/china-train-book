@@ -4,13 +4,14 @@ export const useBookingStore = defineStore('booking', {
   state: () => ({
     steps: [
       { name: 'Search', path: '/' },
-      { name: 'Timetable', path: '/trains/timetable' },
-      { name: 'Passengers', path: '/booking/passenger-info' },
-      { name: 'Payment', path: '/orders/pay' },
+      { name: 'Timetable', path: '/trains/order/:orderId/timetable' },
+      { name: 'Passengers', path: '/trains/order/:orderId/passengers' },
+      { name: 'Payment', path: '/trains/order/:orderId/payment' },
     ],
     activeStep: 0,
     searchParams: null,
-    orderId: null
+    orderId: null,
+    ticketInfo: null
   }),
   actions: {
     setActiveStep(index) {
@@ -22,6 +23,12 @@ export const useBookingStore = defineStore('booking', {
     },
     setOrderId(id) {
       this.orderId = id
+    },
+    setTicketInfo(info) {
+      this.ticketInfo = info
+    },
+    getTicketInfo() {
+      return this.ticketInfo
     }
   }
 })

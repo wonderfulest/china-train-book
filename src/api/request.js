@@ -22,27 +22,22 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   response => {
     const res = response.data;
+    console.log(res)
     // 判断返回值，code为0表示成功
-    if (res.code === '0') {
+    if (res.code == '0') {
       return {
         success: true,
         code: res.code,
         data: res.data
       };
     }
-    // 非0表示失败
-    return {
-      success: false,
-      code: res.code,
-      message: res.message || 'Error',
-    };
+    // 非0表示失败，直接弹出错误消息
+    return Promise.reject(new Error(res.message || '请求失败'));
   },
   error => {
     console.log('err' + error);
-    return {
-      success: false,
-      message: error.message || 'Request Error'
-    };
+    // 网络错误也弹出提示
+    return Promise.reject(error);
   }
 );
 

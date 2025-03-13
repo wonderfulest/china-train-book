@@ -82,8 +82,7 @@
       <el-skeleton v-if="loading" :rows="3" animated />
 
       <template v-if="!loading && trains.length > 0">
-
-        <div v-for="train in trains" :key="train.id" class="train-card" :class="{ 'expanded': train.expanded }">
+        <div v-for="train in trains" :key="train.id" class="train-card" :class="{ expanded: train.expanded }">
           <div class="train-item">
             <!-- Departure information -->
             <div class="col departure-section">
@@ -122,18 +121,14 @@
 
             <!-- Select Seats / Cancel button as separate column -->
             <div class="action-column">
-              <el-button 
-                :type="train.expanded ? 'danger' : 'primary'" 
-                :class="['action-btn', train.expanded ? 'cancel-btn' : 'select-seats-btn']"
-                @click="train.expanded ? (train.expanded = false) : expandDetails(train)">
-                {{ train.expanded ? 'Cancel' : 'Select Seats' }}
+              <el-button :type="train.expanded ? 'danger' : 'primary'" :class="['action-btn', train.expanded ? 'cancel-btn' : 'select-seats-btn']" @click="train.expanded ? (train.expanded = false) : expandDetails(train)">
+                {{ train.expanded ? "Cancel" : "Select Seats" }}
               </el-button>
             </div>
           </div>
 
           <!-- Inline train details section -->
           <div v-if="train.expanded" class="inline-train-details">
-           
             <div class="dialog-important-note">
               <strong>IMPORTANT:</strong> Boarding pass should be redeemed in ticket machine at the train station. Child tickets are available for children less than 1.5m in height. Infants less than 1.2m in height can travel for free without own
               seat or bed.
@@ -153,7 +148,7 @@
                     <button class="nav-button next" @click="nextSeatImage"><i class="el-icon-arrow-right"></i></button>
                   </div>
                 </div>
-                
+
                 <!-- Right side: Seat options -->
                 <div class="dialog-seat-options">
                   <div v-for="(seat, index) in train.seats" :key="seat.type" class="dialog-seat-option" :class="{ selected: selectedSeatIndex === index }" @click="selectSeat(index)">
@@ -196,7 +191,7 @@ import { format } from "date-fns";
 import { useBookingStore } from "@/stores/bookingProcess";
 import { Switch, Location, Close } from "@element-plus/icons-vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElLoading } from "element-plus";
 import { getOrderTimetable } from "@/api/modules/orders";
 import { getExchangeRate } from "@/api/modules/exchange";
 import { useCityStore } from "@/stores/city";
@@ -209,6 +204,9 @@ const cityStore = useCityStore();
 const currencyStore = useCurrencyStore();
 const { allCities, hotCities } = storeToRefs(cityStore);
 const { currency, currencySymbol } = storeToRefs(currencyStore);
+
+// 设置当前步骤为Timetable阶段（索引为1）
+const bookingStore = useBookingStore();
 
 // 转换城市数据格式
 const cities = computed(() =>
@@ -270,16 +268,16 @@ const fetchExchangeRate = async () => {
     // 模拟汇率数据 - 实际应用中应该调用API
     // 支持的货币: USD, CNY, EUR, SGD, JPY
     const mockRates = {
-      USD: 0.13810000,
+      USD: 0.1381,
       CNY: 1.0,
-      EUR: 0.12760000,
-      SGD: 0.18650000,
-      JPY: 20.8500000
+      EUR: 0.1276,
+      SGD: 0.1865,
+      JPY: 20.85,
     };
-    
+
     // 设置所有汇率
     exchangeRates.value = mockRates;
-    
+
     // 实际API调用示例：
     // 对于每种支持的货币，获取从CNY到该货币的汇率
     // const currencies = ['USD', 'EUR', 'SGD', 'JPY'];
@@ -306,18 +304,18 @@ const initialize = async () => {
 
     // 检查路由中是否有订单ID参数
     const orderId = route.params.orderId;
-    
+
     if (orderId) {
       // 如果有订单ID，则通过订单ID获取时刻表信息
       const bookingStore = useBookingStore();
       bookingStore.setOrderId(orderId);
-      
+
       try {
         const response = await getOrderTimetable(orderId);
-        
-        if (response.code === '0' && response.data) {
+
+        if (response.code === "0" && response.data) {
           const { fromStationCode, toStationCode, fromDate, trains } = response.data;
-          
+
           // 设置搜索参数
           if (fromStationCode) {
             const station = cities.value.find((c) => c.stationCode === fromStationCode);
@@ -326,7 +324,7 @@ const initialize = async () => {
               from.value = station.value;
             }
           }
-          
+
           if (toStationCode) {
             const station = cities.value.find((c) => c.stationCode === toStationCode);
             if (station) {
@@ -334,19 +332,19 @@ const initialize = async () => {
               to.value = station.value;
             }
           }
-          
+
           if (fromDate) {
             date.value = fromDate;
           }
-          
+
           // 处理列车数据
           processTrainData(trains);
         } else {
-          ElMessage.error('获取时刻表数据失败');
+          ElMessage.error("获取时刻表数据失败");
         }
       } catch (error) {
-        console.error('获取时刻表数据失败:', error);
-        ElMessage.error('获取时刻表数据失败，请稍后重试');
+        console.error("获取时刻表数据失败:", error);
+        ElMessage.error("获取时刻表数据失败，请稍后重试");
       }
     } else {
       // 如果没有订单ID，则使用查询参数
@@ -460,9 +458,9 @@ const processTrainData = (trainsData) => {
 // 应用筛选条件的函数
 const applyFilters = () => {
   if (!trains.value.length) return;
-  
+
   let filteredTrains = [...trains.value];
-  
+
   // 筛选列车类型
   if (trainType.value) {
     filteredTrains = filteredTrains.filter((train) => train.number.startsWith(trainType.value));
@@ -491,15 +489,13 @@ const applyFilters = () => {
       return train.departStation.toLowerCase().includes(departStation.value.toLowerCase());
     });
   }
-  
+
   trains.value = filteredTrains;
 };
 
 onMounted(() => {
   initialize();
 
-  // 设置当前步骤为Timetable阶段（索引为1）
-  const bookingStore = useBookingStore();
   bookingStore.setActiveStep(1);
 
   // 保存搜索参数到store
@@ -522,10 +518,10 @@ const searchTrains = async () => {
     const bookingStore = useBookingStore();
     const orderId = bookingStore.orderId;
     const response = await getOrderTimetable(orderId, {
-      date: format(date.value, 'yyyy-MM-dd'),
+      date: format(date.value, "yyyy-MM-dd"),
       from: fromStation.value.stationCode,
       to: toStation.value.stationCode,
-      isStudent: false
+      isStudent: false,
     });
     // 转换API响应以匹配UI格式
     trains.value = response.data.trains.map((train) => {
@@ -638,20 +634,20 @@ const swapLocations = () => {
 
 const expandDetails = (train, event) => {
   // If the event is from a click on the close button, don't toggle
-  if (event && event.target.closest('.custom-close-button')) {
+  if (event && event.target.closest(".custom-close-button")) {
     return;
   }
-  
+
   // Close any other expanded trains first
-  trains.value.forEach(t => {
+  trains.value.forEach((t) => {
     if (t.id !== train.id) {
       t.expanded = false;
     }
   });
-  
+
   // Toggle the selected train
   train.expanded = !train.expanded;
-  
+
   // Set the selected train for seat selection
   if (train.expanded) {
     selectedTrain.value = train;
@@ -884,7 +880,7 @@ const convertPrice = (cnyPrice) => {
   const targetCurrency = currency.value;
   const rate = exchangeRates.value[targetCurrency];
   if (!rate) return 0;
-  
+
   const convertedPrice = parseFloat(cnyPrice) * rate;
   return Math.ceil(convertedPrice); // 向上取整到整数
 };
@@ -902,26 +898,17 @@ const formatDate = (dateString) => {
 };
 
 // 跳转到乘客信息页面
-const goToCreateOrder = (train, seat) => {
-  // 更新订单流程参数并设置下一步
-  const bookingStore = useBookingStore();
-  console.log("train, seat", from.value, to.value, date.value, train, seat);
-  bookingStore.setSearchParams({
-    from: from.value,
-    to: to.value,
-    date: date.value,
-    selectedTrain: train,
-    selectedSeat: seat,
+const goToCreateOrder = async (train, seat) => {
+  // 显示加载中
+  const loading = ElLoading.service({
+    lock: true,
+    text: "正在创建订单...",
+    background: "rgba(0, 0, 0, 0.7)",
   });
 
-  // 更新激活步骤为"乘客信息"
-  bookingStore.setActiveStep(2);
-
-  console.log("train, seat", train, seat);
-  router.push({
-    name: "PassengerInfo",
-    query: {
-      trainId: train.id,
+  try {
+    // 存入车票信息到store
+    bookingStore.setTicketInfo({
       trainNo: train.number,
       from: train.departStation,
       to: train.arrivalStation,
@@ -931,8 +918,23 @@ const goToCreateOrder = (train, seat) => {
       departTime: train.departTime,
       arriveTime: train.arrivalTime,
       duration: train.duration,
-    },
-  });
+    });
+
+    // 更新激活步骤为"乘客信息"
+    bookingStore.setActiveStep(2);
+
+    // 关闭加载中
+    loading.close();
+
+    // 跳转到新的乘客信息页面，只传递orderId
+    router.push({
+      path: `/trains/order/${bookingStore.orderId}/passengers`,
+    });
+  } catch (error) {
+    console.error("创建订单失败:", error);
+    ElMessage.error("创建订单失败，请重试");
+    loading.close();
+  }
 };
 </script>
 
@@ -1659,7 +1661,7 @@ const goToCreateOrder = (train, seat) => {
 }
 
 .dialog-tab.active::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -1px;
   left: 0;
@@ -1683,8 +1685,6 @@ const goToCreateOrder = (train, seat) => {
   font-weight: 600;
   cursor: pointer;
 }
-
-
 
 .dialog-seat-image {
   width: 100%;

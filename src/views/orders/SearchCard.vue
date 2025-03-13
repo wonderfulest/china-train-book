@@ -1,32 +1,39 @@
 <template>
-  <el-card class="search-card">
-    <div class="card-header">
-      <img src="/src/assets/crh-logo.png" alt="CRH Logo" class="crh-logo">
-      <h2 class="search-title">Book Your Train Journey in China</h2>
-      <p class="search-subtitle">Fast, Easy and Reliable Booking Service</p>
-    </div>
-    <div class="booking-header">
-      <div class="booking-icon">
-        <el-icon><Van /></el-icon>
-        <span>Train Tickets</span>
+  <div class="search-container">
+    <div class="search-form-row">
+      <!-- 日期选择 -->
+      <div class="date-picker-container" @click="openDatePicker">
+        <div class="date-display">
+          <div class="date-number">{{ formatDateNumber(date) }}</div>
+          <div class="date-month">{{ formatDateMonth(date) }}</div>
+        </div>
+        <el-date-picker
+          ref="datePicker"
+          v-model="date"
+          type="date"
+          placeholder="选择日期"
+          :disabled-date="disabledDate"
+          format="DD MMM"
+          value-format="YYYY-MM-DD"
+          style="position: absolute; opacity: 0;"
+        />
       </div>
-    </div>
-    <el-form label-position="top" class="search-form">
-      <div class="form-row">
-        <el-form-item label="From" class="form-item">
+      
+      <!-- 城市选择区域 -->
+      <div class="cities-container">
+        <!-- 出发城市 -->
+        <div class="city-input">
           <el-autocomplete
             v-model="from"
             :fetch-suggestions="querySearch"
-            placeholder="Enter departure city"
-            class="full-width"
+            placeholder="Beijing"
+            class="city-autocomplete-input"
             :trigger-on-focus="true"
             popper-class="city-autocomplete"
             @focus="handleFocus"
             id="from"
+            clearable
           >
-            <template #prefix>
-              <el-icon><Location /></el-icon>
-            </template>
             <template #default="{ item }">
               <div class="suggestion-group">
                 <div class="suggestion-group-label">{{ item.label }}</div>
@@ -41,26 +48,28 @@
               </div>
             </template>
           </el-autocomplete>
-        </el-form-item>
+        </div>
+        
+        <!-- 交换按钮 -->
         <div class="exchange-button">
-          <el-button circle @click="exchangeCities">
+          <el-button circle @click="exchangeCities" class="exchange-btn">
             <el-icon><Right class="exchange-icon" /></el-icon>
           </el-button>
         </div>
-        <el-form-item label="To" class="form-item">
+        
+        <!-- 到达城市 -->
+        <div class="city-input">
           <el-autocomplete
             v-model="to"
             :fetch-suggestions="querySearch"
-            placeholder="Enter destination city"
-            class="full-width"
+            placeholder="Xian"
+            class="city-autocomplete-input"
             :trigger-on-focus="true"
             popper-class="city-autocomplete"
             @focus="handleFocus"
             id="to"
+            clearable
           >
-            <template #prefix>
-              <el-icon><Location /></el-icon>
-            </template>
             <template #default="{ item }">
               <div class="suggestion-group">
                 <div class="suggestion-group-label">{{ item.label }}</div>
@@ -75,24 +84,15 @@
               </div>
             </template>
           </el-autocomplete>
-        </el-form-item>
+        </div>
       </div>
-      <el-form-item label="Departure Date">
-        <el-date-picker
-          v-model="date"
-          type="date"
-          placeholder="Select date"
-          class="full-width"
-          :disabled-date="disabledDate"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-        />
-      </el-form-item>
-      <el-button type="danger" class="search-button" @click="handleSearch">
+      
+      <!-- 搜索按钮 -->
+      <el-button type="warning" class="search-button" @click="handleSearch">
         Search Trains
       </el-button>
-    </el-form>
-  </el-card>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -121,6 +121,27 @@ const date = ref(new Date().toISOString().split('T')[0])
 const fromStation = ref(null)
 const toStation = ref(null)
 const searchQuery = ref('')
+
+// 格式化日期为数字（日）
+const formatDateNumber = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.getDate()
+}
+
+// 格式化日期为月份（Mar）
+const formatDateMonth = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  return months[date.getMonth()]
+}
+
+// 打开日期选择器
+const datePicker = ref(null)
+const openDatePicker = () => {
+  datePicker.value?.focus()
+}
 
 // 高亮匹配文本的函数
 const highlightMatch = (text, query) => {
@@ -279,169 +300,189 @@ const handleFocus = async () => {
 </script>
 
 <style scoped>
-.search-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 24px;
-  padding: 40px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-:deep(.el-input__wrapper) {
-  padding: 4px 15px;
-}
-
-:deep(.el-input__inner) {
-  height: 40px;
-  font-size: 16px;
-}
-
-:deep(.el-date-editor.el-input),
-:deep(.el-date-editor .el-input__wrapper) {
+.search-container {
   width: 100%;
-  height: 48px;
+  padding: 10px;
 }
 
-:deep(.el-date-editor .el-input__wrapper) {
-  padding: 4px 15px;
-}
-
-:deep(.el-date-editor .el-input__inner) {
-  height: 40px;
-  font-size: 16px;
-}
-
-:deep(.el-input__prefix) {
+.search-form-row {
+  display: flex;
   align-items: center;
-  height: 100%;
+  width: 100%;
+  gap: 10px;
+  padding: 0;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  height: 70px;
 }
 
-:deep(.el-card__body) {
+/* 日期选择容器 */
+.date-picker-container {
+  width: 70px;
+  height: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  border-radius: 8px 0 0 8px;
   padding: 0;
 }
 
-.card-header {
-  text-align: center;
-  margin-bottom: 40px;
+.date-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-.crh-logo {
-  height: 72px;
-  width: auto;
-  margin-bottom: 24px;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+.date-number {
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 1;
 }
 
-.search-title {
-  color: var(--text-color);
-  font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 12px;
-  line-height: 1.2;
+.date-month {
+  font-size: 14px;
+  color: #666;
 }
 
-.search-subtitle {
-  color: var(--text-color-secondary);
-  font-size: 18px;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.booking-header {
-  margin-bottom: 32px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.booking-icon {
+/* 城市选择区域 */
+.cities-container {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  padding: 0 15px;
+  border-left: 1px solid #eee;
+  border-right: 1px solid #eee;
+  height: 100%;
+}
+
+.city-autocomplete-input {
+  width: 100%;
+}
+
+:deep(.el-input__wrapper) {
+  box-shadow: none !important;
+  padding: 0;
+  border: none;
+}
+
+:deep(.el-input__inner) {
+  height: 32px;
   font-size: 18px;
-  color: var(--primary-color);
-  font-weight: 600;
+  font-weight: 500;
+  color: #333;
+  background-color: transparent;
+  padding: 0;
 }
 
-.form-row {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 24px;
+
+.from-flag {
+  background-color: #e6002d;
 }
 
-.form-item {
+.to-flag {
+  background-color: #e6002d;
+}
+
+/* 城市输入框样式 */
+.city-input {
   flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
+.city-autocomplete-input {
+  width: 100%;
+}
+
+/* 交换按钮样式 */
 .exchange-button {
   display: flex;
-  align-items: flex-end;
-  padding-bottom: 32px;
+  align-items: center;
+  padding: 0;
+  margin: 0 10px;
 }
 
-.exchange-button .el-button {
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-  transition: all 0.3s ease;
-}
-
-.exchange-button .el-button:hover {
-  background: var(--primary-color);
-  color: white;
-  transform: rotate(180deg);
+.exchange-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  border: none;
+  color: #666;
 }
 
 .exchange-icon {
   transform: rotate(90deg);
-  transition: all 0.3s ease;
+  font-size: 14px;
 }
 
-.search-button {
-  width: 100%;
-  height: 56px;
-  font-size: 20px;
-  font-weight: 600;
-  background: linear-gradient(45deg, var(--primary-color), #ff1a43);
+:deep(.el-input__wrapper) {
+  box-shadow: none !important;
+  padding: 0;
   border: none;
-  margin-top: 24px;
-  border-radius: 16px;
-  transition: all 0.3s ease;
+  background-color: transparent;
+}
+
+:deep(.el-input__inner) {
+  height: 32px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  background-color: transparent;
+  padding: 0;
+}
+
+:deep(.el-input__suffix) {
+  display: flex;
+  align-items: center;
+}
+
+/* 日期选择器样式 */
+.date-picker-container {
+  cursor: pointer;
+}
+
+/* 搜索按钮样式 */
+.search-button {
+  height: 70px;
+  border-radius: 0 8px 8px 0;
+  margin: 0;
+  padding: 0 20px;
+  font-size: 16px;
+  font-weight: 600;
+  background-color: #ffb800;
+  border: none;
+  color: #fff;
+  min-width: 140px;
 }
 
 .search-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(255, 56, 92, 0.3);
+  background-color: #ffa500;
+  transition: all 0.3s ease;
 }
 
-.full-width {
-  width: 100%;
-}
-
+/* 自动完成下拉菜单样式 */
 :deep(.city-autocomplete) {
-  padding: 16px;
-}
-
-:deep(.city-autocomplete .el-scrollbar__view) {
-  padding: 0;
-}
-
-:deep(.city-autocomplete .el-autocomplete-suggestion__wrap) {
-  margin: 0;
-  padding: 0;
-}
-
-:deep(.city-autocomplete .el-autocomplete-suggestion__list) {
-  padding: 0;
-  margin: 0;
+  padding: 10px;
+  border-radius: 4px;
 }
 
 .suggestion-group {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .suggestion-group-label {
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 5px 10px;
+  font-size: 13px;
   color: #999;
   background-color: #f5f7fa;
 }
@@ -455,53 +496,55 @@ const handleFocus = async () => {
 
 .suggestion-item {
   cursor: pointer;
-  padding: 8px 16px;
+  padding: 8px 10px;
   display: block;
-  color: var(--el-text-color-primary);
+  color: #333;
   font-size: 14px;
 }
 
 .suggestion-item:hover {
-  background-color: var(--el-color-primary-light-9);
+  background-color: #f5f7fa;
 }
 
 :deep(.highlight) {
   font-weight: bold !important;
-  text-decoration: underline !important;
+  color: #e6002d !important;
 }
 
 @media (max-width: 768px) {
-  .search-card {
-    padding: 24px;
-    border-radius: 16px;
-  }
-
-  .search-title {
-    font-size: 28px;
-  }
-
-  .search-subtitle {
-    font-size: 16px;
-  }
-
-  .form-row {
+  .search-form-row {
     flex-direction: column;
-    gap: 0;
+    height: auto;
+    padding: 10px;
+    gap: 15px;
   }
-
-  .exchange-button {
-    align-items: center;
-    padding: 16px 0;
+  
+  .date-picker-container {
+    width: 100%;
+    height: 50px;
+    border-radius: 8px;
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
   }
-
-  .exchange-icon {
-    transform: rotate(0deg);
+  
+  .cities-container {
+    width: 100%;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 10px;
+  }
+  
+  .search-button {
+    width: 100%;
+    border-radius: 8px;
+    height: 50px;
   }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
   .search-card {
-    padding: 32px;
+    padding: 0;
   }
 }
 </style>
