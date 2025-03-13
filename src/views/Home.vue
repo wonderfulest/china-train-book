@@ -11,7 +11,7 @@
 </template>
 
 <script setup>
-import SearchCard from '@/components/Home/SearchCard.vue'
+import SearchCard from '@/views/booking/SearchCard.vue'
 import FeatureSection from '@/components/Home/FeatureSection.vue'
 import PopularRoutes from '@/components/Home/PopularRoutes.vue'
 import { ref, onMounted } from 'vue'

@@ -45,6 +45,15 @@ const routes = [
     component: TimeTable
   },
   {
+    path: '/trains/order/:orderId/timetable',
+    name: 'OrderTimeTable',
+    component: TimeTable,
+    meta: {
+      title: '列车时刻表',
+      step: 1 // 对应四步导航系统中的第二步
+    }
+  },
+  {
     path: '/my-bookings',
     name: 'MyBookings',
     component: MyBookings

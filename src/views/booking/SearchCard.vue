@@ -99,9 +99,11 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCityStore } from '@/stores/city'
+import { useBookingStore } from '@/stores/bookingProcess'
 import { storeToRefs } from 'pinia'
 import { Location, Van, Right } from '@element-plus/icons-vue'
-import { getAllCity, getHotCity } from '@/api/modules/train'
+import { createOrderSearch } from '@/api/modules/orders'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const emit = defineEmits(['search'])
@@ -144,20 +146,42 @@ const disabledDate = (time) => {
   return time.getTime() < Date.now() - 8.64e7 || time.getTime() > Date.now() + 8.64e7 * 30
 }
 
-const handleSearch = () => {
+const handleSearch = async () => {
   if (!fromStation.value || !toStation.value || !date.value) {
-    ElMessage.warning('Please fill in all search fields')
+    ElMessage.warning('请填写所有搜索字段')
     return
   }
 
-  router.push({
-    path: '/trains/timetable',
-    query: {
+  try {
+    // 调用订单搜索接口
+    const response = await createOrderSearch({
       from: fromStation.value.stationCode,
       to: toStation.value.stationCode,
-      date: date.value
+      date: date.value,
+      isStudent: false
+    })
+
+    if (response.code === '0' && response.data?.uuid) {
+      // 保存订单ID到store中
+      const bookingStore = useBookingStore()
+      bookingStore.setOrderId(response.data.uuid)
+      
+      // 保存搜索参数
+      bookingStore.setSearchParams({
+        from: fromStation.value.stationCode,
+        to: toStation.value.stationCode,
+        date: date.value
+      })
+
+      // 跳转到时刻表页面
+      router.push(`/trains/order/${response.data.uuid}/timetable`)
+    } else {
+      ElMessage.error('搜索失败，请稍后重试')
     }
-  })
+  } catch (error) {
+    console.error('搜索失败:', error)
+    ElMessage.error('搜索失败，请稍后重试')
+  }
 }
 
 const handleSelect = (item) => {

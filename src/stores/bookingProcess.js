@@ -9,7 +9,8 @@ export const useBookingStore = defineStore('booking', {
       { name: 'Payment', path: '/orders/pay' },
     ],
     activeStep: 0,
-    searchParams: null
+    searchParams: null,
+    orderId: null
   }),
   actions: {
     setActiveStep(index) {
@@ -18,6 +19,9 @@ export const useBookingStore = defineStore('booking', {
     },
     setSearchParams(params) {
       this.searchParams = params
+    },
+    setOrderId(id) {
+      this.orderId = id
     }
   }
 })

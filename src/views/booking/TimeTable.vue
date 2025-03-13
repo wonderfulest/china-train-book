@@ -193,11 +193,11 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { format } from "date-fns";
-import { Switch, Location, Close } from "@element-plus/icons-vue";
 import { useBookingStore } from "@/stores/bookingProcess";
+import { Switch, Location, Close } from "@element-plus/icons-vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { getTicketList } from "@/api/modules/train";
+import { getOrderTimetable } from "@/api/modules/orders";
 import { getExchangeRate } from "@/api/modules/exchange";
 import { useCityStore } from "@/stores/city";
 import { useCurrencyStore } from "@/stores/currencyStore";
@@ -304,51 +304,195 @@ const initialize = async () => {
   try {
     await Promise.all([fetchExchangeRate(), cityStore.initializeCityData()]);
 
-    // 如果URL中有参数，查找对应的车站信息
-    const { from: fromCode, to: toCode, date: dateStr } = route.query;
-
-    if (fromCode) {
-      const station = cities.value.find((c) => c.stationCode === fromCode);
-      if (station) {
-        fromStation.value = station;
-        from.value = station.value;
-      }
-    }
-
-    if (toCode) {
-      const station = cities.value.find((c) => c.stationCode === toCode);
-      if (station) {
-        toStation.value = station;
-        to.value = station.value;
-      }
-    }
-
-    if (dateStr) {
+    // 检查路由中是否有订单ID参数
+    const orderId = route.params.orderId;
+    
+    if (orderId) {
+      // 如果有订单ID，则通过订单ID获取时刻表信息
+      const bookingStore = useBookingStore();
+      bookingStore.setOrderId(orderId);
+      
       try {
-        // 将日期字符串解析为 YYYY-MM-DD 格式
-        const parsedDate = new Date(dateStr);
-        if (!isNaN(parsedDate.getTime())) {
-          date.value = parsedDate.toISOString().split("T")[0];
+        const response = await getOrderTimetable(orderId);
+        
+        if (response.code === '0' && response.data) {
+          const { fromStationCode, toStationCode, fromDate, trains } = response.data;
+          
+          // 设置搜索参数
+          if (fromStationCode) {
+            const station = cities.value.find((c) => c.stationCode === fromStationCode);
+            if (station) {
+              fromStation.value = station;
+              from.value = station.value;
+            }
+          }
+          
+          if (toStationCode) {
+            const station = cities.value.find((c) => c.stationCode === toStationCode);
+            if (station) {
+              toStation.value = station;
+              to.value = station.value;
+            }
+          }
+          
+          if (fromDate) {
+            date.value = fromDate;
+          }
+          
+          // 处理列车数据
+          processTrainData(trains);
         } else {
-          date.value = new Date().toISOString().split("T")[0];
+          ElMessage.error('获取时刻表数据失败');
         }
-      } catch {
-        date.value = new Date().toISOString().split("T")[0];
+      } catch (error) {
+        console.error('获取时刻表数据失败:', error);
+        ElMessage.error('获取时刻表数据失败，请稍后重试');
       }
     } else {
-      date.value = new Date().toISOString().split("T")[0];
-    }
+      // 如果没有订单ID，则使用查询参数
+      const { from: fromCode, to: toCode, date: dateStr } = route.query;
 
-    // 如果有完整的查询参数，自动搜索
-    if (fromStation.value && toStation.value && date.value) {
-      searchTrains();
+      if (fromCode) {
+        const station = cities.value.find((c) => c.stationCode === fromCode);
+        if (station) {
+          fromStation.value = station;
+          from.value = station.value;
+        }
+      }
+
+      if (toCode) {
+        const station = cities.value.find((c) => c.stationCode === toCode);
+        if (station) {
+          toStation.value = station;
+          to.value = station.value;
+        }
+      }
+
+      if (dateStr) {
+        try {
+          // 将日期字符串解析为 YYYY-MM-DD 格式
+          const parsedDate = new Date(dateStr);
+          if (!isNaN(parsedDate.getTime())) {
+            date.value = parsedDate.toISOString().split("T")[0];
+          } else {
+            date.value = new Date().toISOString().split("T")[0];
+          }
+        } catch {
+          date.value = new Date().toISOString().split("T")[0];
+        }
+      } else {
+        date.value = new Date().toISOString().split("T")[0];
+      }
+
+      // 如果有完整的查询参数，自动搜索
+      if (fromStation.value && toStation.value && date.value) {
+        searchTrains();
+      }
     }
   } catch (error) {
-    console.error("Failed to initialize:", error);
-    ElMessage.error("Failed to load data");
+    console.error("初始化失败:", error);
+    ElMessage.error("加载数据失败");
   } finally {
     loading.value = false;
   }
+};
+
+// 处理列车数据的函数
+const processTrainData = (trainsData) => {
+  if (!trainsData || !Array.isArray(trainsData) || trainsData.length === 0) {
+    trains.value = [];
+    return;
+  }
+
+  // 转换API响应以匹配UI格式
+  trains.value = trainsData.map((train) => {
+    // 处理座位信息
+    const seats = [];
+    if (train.swzPrice) {
+      seats.push({
+        type: "Business Class",
+        price: train.swzPrice,
+        status: train.swzNum === "有" ? "Available" : train.swzNum === "0" ? "Sold out" : `${train.swzNum} left`,
+        amenities: ["wifi", "power", "tv", "meal"],
+      });
+    }
+    if (train.ydzPrice) {
+      seats.push({
+        type: "First Class",
+        price: train.ydzPrice,
+        status: train.ydzNum === "有" ? "Available" : train.ydzNum === "0" ? "Sold out" : `${train.ydzNum} left`,
+        amenities: ["wifi", "power"],
+      });
+    }
+    if (train.edzPrice) {
+      seats.push({
+        type: "Second Class",
+        price: train.edzPrice,
+        status: train.edzNum === "有" ? "Available" : train.edzNum === "0" ? "Sold out" : `${train.edzNum} left`,
+        amenities: ["wifi", "power"],
+      });
+    }
+
+    // 查找出发和到达站的拼音名称
+    const fromStationObj = cities.value.find((c) => c.stationCode === train.fromStation);
+    const toStationObj = cities.value.find((c) => c.stationCode === train.toStation);
+
+    return {
+      id: train.trainNo,
+      number: train.trainCode,
+      type: train.trainType === "G" ? "High-speed G" : train.trainType === "D" ? "High-speed D" : "Normal K",
+      departTime: train.fromTime,
+      departStation: fromStationObj ? fromStationObj.label : train.fromStation,
+      duration: train.runTime,
+      arrivalTime: train.toTime,
+      arrivalStation: toStationObj ? toStationObj.label : train.toStation,
+      expanded: false,
+      canBook: train.canBook,
+      seats: seats,
+      minPrice: seats.length > 0 ? Math.min(...seats.map((s) => s.price)) : null,
+    };
+  });
+
+  // 应用筛选条件
+  applyFilters();
+};
+
+// 应用筛选条件的函数
+const applyFilters = () => {
+  if (!trains.value.length) return;
+  
+  let filteredTrains = [...trains.value];
+  
+  // 筛选列车类型
+  if (trainType.value) {
+    filteredTrains = filteredTrains.filter((train) => train.number.startsWith(trainType.value));
+  }
+
+  // 筛选发车时间
+  if (departTime.value) {
+    filteredTrains = filteredTrains.filter((train) => {
+      const hour = parseInt(train.departTime.split(":")[0]);
+      switch (departTime.value) {
+        case "morning":
+          return hour >= 6 && hour < 12;
+        case "afternoon":
+          return hour >= 12 && hour < 18;
+        case "evening":
+          return hour >= 18 || hour < 6;
+        default:
+          return true;
+      }
+    });
+  }
+
+  // 筛选发车站
+  if (departStation.value) {
+    filteredTrains = filteredTrains.filter((train) => {
+      return train.departStation.toLowerCase().includes(departStation.value.toLowerCase());
+    });
+  }
+  
+  trains.value = filteredTrains;
 };
 
 onMounted(() => {
@@ -372,27 +516,19 @@ const searchTrains = async () => {
     return;
   }
 
-  // 更新URL参数
-  router.push({
-    path: "/trains/timetable",
-    query: {
-      from: fromStation.value.stationCode,
-      to: toStation.value.stationCode,
-      date: date.value,
-    },
-  });
-
   loading.value = true;
   try {
-    const response = await getTicketList({
-      fromStationCode: fromStation.value.stationCode,
-      toStationCode: toStation.value.stationCode,
-      fromDate: date.value,
-      isStudent: false,
+    // 使用新的API接口
+    const bookingStore = useBookingStore();
+    const orderId = bookingStore.orderId;
+    const response = await getOrderTimetable(orderId, {
+      date: format(date.value, 'yyyy-MM-dd'),
+      from: fromStation.value.stationCode,
+      to: toStation.value.stationCode,
+      isStudent: false
     });
-
     // 转换API响应以匹配UI格式
-    trains.value = response.data.map((train) => {
+    trains.value = response.data.trains.map((train) => {
       // 处理座位信息
       const seats = [];
       if (train.swzPrice) {
