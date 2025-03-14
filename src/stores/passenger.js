@@ -49,6 +49,15 @@ export const usePassengerStore = defineStore('passenger', {
       return false
     },
 
+    removeHistoricalPassenger(id) {
+      const index = this.historicalPassengers.findIndex(p => p.id === id)
+      if (index !== -1) {
+        this.historicalPassengers.splice(index, 1)
+        return true
+      }
+      return false
+    },
+
     clearPassengers() {
       this.passengers = []
     }

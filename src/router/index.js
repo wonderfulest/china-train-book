@@ -12,8 +12,6 @@ import InternationalTrains from '../views/InternationalTrains.vue'
 import Flights from '../views/Flights.vue'
 import ChinaTrainGuide from '../views/ChinaTrainGuide.vue'
 import BookingGuide from '../views/BookingGuide.vue'
-import BookingSuccess from '../views/orders/BookingSuccess.vue'
-import BookingPaymentPending from '../views/orders/BookingPaymentPending.vue'
 import ChinaEsim from '../views/ChinaEsim.vue'
 import NotFound from '../views/NotFound.vue'
 
@@ -54,6 +52,23 @@ const routes = [
     meta: {
       title: '乘客信息',
       step: 2 // 对应四步导航系统中的第三步
+    }
+  },
+  {
+    path: '/trains/order/:orderId/pay',
+    name: 'OrderPayment',
+    component: () => import('@/views/orders/OrderPayment.vue'),
+    meta: {
+      title: 'Order Payment',
+      step: 3 // 对应四步导航系统中的第四步
+    }
+  },
+  {
+    path: '/trains/order/:orderId/success',
+    name: 'OrderPaymentSuccess',
+    component: () => import('@/views/orders/OrderPaymentSuccess.vue'),
+    meta: {
+      title: 'Payment Success'
     }
   },
   {
@@ -106,22 +121,7 @@ const routes = [
     name: 'BookingGuide',
     component: BookingGuide
   },
-  {
-    path: '/trains/pay/',
-    name: 'BookingPaymentPending',
-    component: () => import('@/views/orders/BookingPaymentPending.vue'),
-    meta: {
-      title: 'Payment Confirmation'
-    }
-  },
-  {
-    path: '/booking-success/:bookingId',
-    name: 'BookingSuccess',
-    component: () => import('@/views/orders/BookingSuccess.vue'),
-    meta: {
-      title: 'Booking Success'
-    }
-  },
+ 
   // 404 catch-all route
   {
     path: '/:pathMatch(.*)*',

@@ -24,6 +24,49 @@ export const getOrderTimetable = (orderId, params) => {
   })
 }
 
+// 获取订单详情
+export const getOrderById = (orderId) => {
+  return request({
+    url: `/orders/${orderId}`,
+    method: 'get'
+  });
+};
+
+// 更新订单乘客信息
+export const updateOrderPassengers = (orderId, passengerData) => {
+  return request({
+    url: `/orders/${orderId}/passengers`,
+    method: 'post',
+    data: passengerData
+  });
+};
+
+// 完成订单支付
+export const completePayment = (orderId, paymentMethod, paymentId, details) => {
+  return request({
+    url: `/orders/${orderId}/payment/complete`,
+    method: 'post',
+    data: {
+      paymentMethod,
+      paymentId,
+      details
+    }
+  });
+};
+
+// 支付回调
+export const paymentCallback = (bookingId) => {
+  return request({
+    url: "/booking/payment/callback",
+    method: "post",
+    params: { bookingId },
+  });
+};
+
+
+
+
+// 废弃
 
 export const submitBooking = (bookForm) => {
   return request({
@@ -53,30 +96,4 @@ export const getBooking = (bookingId, email) => {
     });
   }
   return null;
-};
-
-export const paymentCallback = (bookingId) => {
-  return request({
-    url: "/booking/payment/callback",
-    method: "post",
-    params: { bookingId },
-  });
-};
-
-// 获取订单乘客信息
-export const getOrderPassengers = (orderId) => {
-  return request({
-    url: `/orders/${orderId}/passengers`,
-    method: 'post',
-    data: {}
-  });
-};
-
-// 更新订单乘客信息
-export const updateOrderPassengers = (orderId, passengerData) => {
-  return request({
-    url: `/orders/${orderId}/passengers/update`,
-    method: 'post',
-    data: passengerData
-  });
 };
