@@ -17,26 +17,45 @@
         
         <div class="train-info">
           <div class="train-header">
-            <div class="train-tag">Train {{ orderData.trainNo }}</div>
-            <div class="train-date">{{ formatDisplayDate(orderData.date) }}</div>
+            <div class="train-tag">Train {{ orderData.trainNo || 'N/A' }}</div>
+            <div class="train-date">{{ formatDisplayDate(new Date()) }}</div>
           </div>
           
           <div class="train-route">
             <div class="station departure">
-              <div class="name">{{ orderData.fromStation }}</div>
-              <div class="time">{{ orderData.departTime }}</div>
+              <div class="name">{{ getStationName(orderData.from) }}</div>
+              <div class="time">{{ orderData.departTime || 'N/A' }}</div>
             </div>
             
             <div class="route-info">
-              <div class="seat-type">{{ orderData.seatType }}</div>
+              <div class="seat-type">{{ orderData.seatType || 'Standard Seat' }}</div>
               <div class="duration">{{ calculateDuration(orderData.departTime, orderData.arriveTime) }}</div>
             </div>
             
             <div class="station arrival">
-              <div class="name">{{ orderData.toStation }}</div>
-              <div class="time">{{ orderData.arriveTime }}</div>
+              <div class="name">{{ getStationName(orderData.to) }}</div>
+              <div class="time">{{ orderData.arriveTime || 'N/A' }}</div>
             </div>
           </div>
+        </div>
+        
+        <!-- 乘客信息 -->
+        <div class="passengers-info" v-if="orderData.passengers && orderData.passengers.length > 0">
+          <h3>Passenger Information</h3>
+          <el-table :data="orderData.passengers" stripe style="width: 100%">
+            <el-table-column prop="passportName" label="Name" />
+            <el-table-column label="Type">
+              <template #default="{row}">
+                {{ getPassengerType(row.passengerType) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="passportNumber" label="Passport" />
+            <el-table-column label="Price">
+              <template #default="{row}">
+                {{ formatUSDPrice(row.priceTotal) }}
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
         
         <div class="payment-info">
@@ -44,11 +63,11 @@
           <div class="info-grid">
             <div class="info-item">
               <label>Payment Method</label>
-              <div>PayPal</div>
+              <div>{{ orderData.payment ? capitalizeFirstLetter(orderData.payment.paymentMethod) : 'PayPal' }}</div>
             </div>
             <div class="info-item">
               <label>Payment Date</label>
-              <div>{{ formatDate(new Date()) }}</div>
+              <div>{{ orderData.payment ? formatDate(new Date(orderData.payment.updatedAt)) : formatDate(new Date()) }}</div>
             </div>
             <div class="info-item">
               <label>Amount Paid</label>
@@ -56,7 +75,30 @@
             </div>
             <div class="info-item">
               <label>Payment Status</label>
-              <div class="status success">Completed</div>
+              <div class="status success">{{ getPaymentStatus(orderData.payment ? orderData.payment.paymentStatus : 1) }}</div>
+            </div>
+            <div class="info-item" v-if="orderData.payment && orderData.payment.paymentId">
+              <label>Transaction ID</label>
+              <div class="transaction-id">{{ orderData.payment.paymentId }}</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 联系人信息 -->
+        <div class="contact-info" v-if="orderData.contact">
+          <h3>Contact Information</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Name</label>
+              <div>{{ orderData.contact.title }} {{ orderData.contact.name }}</div>
+            </div>
+            <div class="info-item">
+              <label>Email</label>
+              <div>{{ orderData.contact.email }}</div>
+            </div>
+            <div class="info-item">
+              <label>Phone</label>
+              <div>{{ orderData.contact.phone }}</div>
             </div>
           </div>
         </div>
@@ -115,7 +157,7 @@
 import { CircleCheckFilled, Download } from '@element-plus/icons-vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
-import { ElMessage, ElLoading } from 'element-plus'
+import { ElMessage, ElLoading, ElTable, ElTableColumn } from 'element-plus'
 import { getOrderById } from '@/api/modules/orders'
 
 const router = useRouter()
@@ -140,6 +182,7 @@ async function fetchOrderData() {
   try {
     const response = await getOrderById(orderId.value);
     orderData.value = response.data;
+    console.log('订单数据:', orderData.value);
     
     // 如果没有获取到有效数据
     if (!orderData.value) {
@@ -153,6 +196,56 @@ async function fetchOrderData() {
   } finally {
     loading.close();
   }
+}
+
+// 获取车站名称
+function getStationName(code) {
+  if (!code) return 'N/A';
+  
+  const stationMap = {
+    'BJP': 'Beijing',
+    'TJP': 'Tianjin',
+    'SHH': 'Shanghai',
+    'GZQ': 'Guangzhou',
+    'SZQ': 'Shenzhen',
+    'CDW': 'Chengdu',
+    'CQW': 'Chongqing',
+    'HZH': 'Hangzhou',
+    'NJH': 'Nanjing',
+    'XAY': 'Xi\'an'
+  };
+  
+  return stationMap[code] || code;
+}
+
+// 获取乘客类型
+function getPassengerType(type) {
+  const typeMap = {
+    1: 'Adult',
+    2: 'Child',
+    3: 'Student',
+    4: 'Senior'
+  };
+  
+  return typeMap[type] || 'Adult';
+}
+
+// 获取支付状态
+function getPaymentStatus(status) {
+  const statusMap = {
+    0: 'Pending',
+    1: 'Completed',
+    2: 'Failed',
+    3: 'Refunded'
+  };
+  
+  return statusMap[status] || 'Unknown';
+}
+
+// 首字母大写
+function capitalizeFirstLetter(string) {
+  if (!string) return '';
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 // 格式化显示日期
@@ -226,18 +319,31 @@ const downloadOrderDetails = () => {
     return;
   }
   
-  const now = new Date().toLocaleString()
+  const now = new Date().toLocaleString();
+  let passengersInfo = '';
+  
+  if (orderData.value.passengers && orderData.value.passengers.length > 0) {
+    passengersInfo = '\nPassengers:\n';
+    orderData.value.passengers.forEach((passenger, index) => {
+      passengersInfo += `${index + 1}. ${passenger.passportName} (${getPassengerType(passenger.passengerType)}) - Passport: ${passenger.passportNumber}\n`;
+    });
+  }
+  
   const content = `China Train Tickets - Order Details
 
 Order ID: ${orderId.value}
 Date: ${now}
-Train: ${orderData.value.trainNo}
-From: ${orderData.value.fromStation}
-To: ${orderData.value.toStation}
-Departure: ${orderData.value.departTime}
-Arrival: ${orderData.value.arriveTime}
-Seat Type: ${orderData.value.seatType}
+Train: ${orderData.value.trainNo || 'N/A'}
+From: ${getStationName(orderData.value.from)}
+To: ${getStationName(orderData.value.to)}
+Departure: ${orderData.value.departTime || 'N/A'}
+Arrival: ${orderData.value.arriveTime || 'N/A'}
+Seat Type: ${orderData.value.seatType || 'Standard Seat'}
 Amount Paid: ${formatUSDPrice(orderData.value.priceAmount)}
+${passengersInfo}
+Payment Method: ${orderData.value.payment ? capitalizeFirstLetter(orderData.value.payment.paymentMethod) : 'PayPal'}
+Payment ID: ${orderData.value.payment ? orderData.value.payment.paymentId : 'N/A'}
+Payment Status: ${getPaymentStatus(orderData.value.payment ? orderData.value.payment.paymentStatus : 1)}
 
 Please keep this information safe for future reference.
 For any assistance, contact support@chinatrainstickets.com
@@ -420,6 +526,22 @@ h3 {
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 20px;
   margin-top: 15px;
+}
+
+.transaction-id {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #409eff;
+  word-break: break-all;
+}
+
+.passengers-info,
+.contact-info {
+  margin-top: 20px;
+  background-color: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 20px;
 }
 
 .info-item {

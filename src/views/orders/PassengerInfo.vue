@@ -779,7 +779,6 @@ async function saveOrderData() {
           title: contactInfo.value.title,
           name: contactInfo.value.name || passengersList.value[0].info.passport_name, // 如果没有联系人姓名，使用第一个乘客姓名
           email: contactInfo.value.email,
-          confirmEmail: contactInfo.value.confirmEmail,
           phone: contactInfo.value.phone,
           unavailableOption: unavailableOption.value,
           refundableOption: refundableOption.value,
@@ -787,6 +786,7 @@ async function saveOrderData() {
         },
       };
 
+      console.log("更新订单乘客信息:", orderUpdateData);
       // 调用API更新订单乘客信息
       await updateOrderPassengers(orderId.value, orderUpdateData);
     } catch (error) {

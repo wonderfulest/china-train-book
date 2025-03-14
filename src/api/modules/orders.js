@@ -79,19 +79,16 @@ export const submitBooking = (bookForm) => {
 export const getBooking = (bookingId, email) => {
   if (bookingId) {
     return request({
-      url: "/booking/get",
-      method: "get",
-      params: {
-        bookingId,
-      }
+      url: `/orders/${bookingId}`,
+      method: "get"
     });
   }
   if (email) {
     return request({
-      url: "/booking/getByContact",
+      url: "/orders",
       method: "get",
       params: {
-        email,
+        email
       }
     });
   }

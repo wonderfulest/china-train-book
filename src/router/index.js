@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import TimeTable from '../views/orders/TimeTable.vue'
-import MyBookings from '../views/MyBookings.vue'
+import OrderList from '../views/orders/OrderList.vue'
 import ContactUs from '../views/ContactUs.vue'
 import TravelGuide from '../views/TravelGuide.vue'
 import TermsConditions from '../views/TermsConditions.vue'
@@ -72,9 +72,9 @@ const routes = [
     }
   },
   {
-    path: '/my-bookings',
-    name: 'MyBookings',
-    component: MyBookings
+    path: '/orders',
+    name: 'OrderList',
+    component: OrderList
   },
   {
     path: '/contact-us',

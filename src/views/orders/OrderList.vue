@@ -1,165 +1,518 @@
 <template>
-  <div class="order-list-container">
-    <div class="page-header">
-      <h1>我的订单</h1>
+  <div class="my-bookings">
+    <div class="search-section">
+      <h1>Orders</h1>
+      <div class="booking-search">
+        <div class="search-form">
+          <el-form :model="searchForm" @submit.prevent="searchBooking">
+            <el-form-item>
+              <el-radio-group v-model="searchForm.searchType">
+                <el-radio label="bookingId">Order ID</el-radio>
+                <el-radio label="email">Contact Email</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item v-if="searchForm.searchType === 'bookingId'" label="Order ID:">
+              <el-input v-model="searchForm.bookingId" placeholder="Enter your order ID" />
+            </el-form-item>
+            <el-form-item v-else label="Contact Email:">
+              <el-input v-model="searchForm.email" placeholder="Enter your contact email" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="searchBooking" :loading="loading">
+                <el-icon><Search /></el-icon> Search
+              </el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+      </div>
     </div>
 
-    <el-card class="order-list-card" shadow="hover">
-      <div v-if="loading" class="loading-container">
-        <el-skeleton :rows="5" animated />
+    <div v-if="bookingList && bookingList.length > 0" class="booking-details">
+      <div v-for="(bookingData, bookingIndex) in bookingList" :key="bookingData.bookingId" class="payment-card">
+        <div class="header">
+          <div class="order-info">
+            <div class="order-id">Order ID: <span>{{ bookingData.orderId }}</span></div>
+            <div class="order-status">Status: <el-tag :type="getPaymentStatusType(bookingData.paymentStatus)">{{ getPaymentStatusText(bookingData.paymentStatus) }}</el-tag></div>
+          </div>
+        </div>
+
+        <div class="train-orders">
+          <div class="train-order">
+            <div class="train-header">
+              <div class="train-tag">Train {{ bookingData.trainNo || 'N/A' }}</div>
+              <div class="train-date">{{ formatDate(bookingData.date) }}</div>
+            </div>
+
+            <div class="train-route">
+              <div class="station">
+                <div class="name">{{ getStationName(bookingData.from) }}</div>
+                <div class="time">{{ formatTime(bookingData.departTime) || 'N/A' }}</div>
+              </div>
+              <div class="route-info">
+                <div class="standing">{{ bookingData.seatType || 'Standard Seat' }}</div>
+                <div class="duration">{{ calculateDuration(bookingData.departTime, bookingData.arriveTime) || 'N/A' }}</div>
+              </div>
+              <div class="station">
+                <div class="name">{{ getStationName(bookingData.to) }}</div>
+                <div class="time">{{ formatTime(bookingData.arriveTime) || 'N/A' }}</div>
+              </div>
+            </div>
+
+            <div class="passengers">
+              <table class="passenger-table">
+                <thead>
+                  <tr>
+                    <th>A/C</th>
+                    <th>Name</th>
+                    <th>Passport Number</th>
+                    <th>Country</th>
+                    <th class="text-right">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="passenger in bookingData.passengers" :key="passenger.passportNumber">
+                    <td>{{ getPassengerType(passenger.passengerType) }}</td>
+                    <td>{{ passenger.passportName }}</td>
+                    <td>{{ passenger.passportNumber }}</td>
+                    <td>{{ passenger.country }}</td>
+                    <td class="text-right">{{ formatPrice(passenger.priceTotal) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="contact-info" v-if="bookingData.contact">
+          <h3>Contact Information</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Name:</label>
+              <span>{{ bookingData.contact.title }} {{ bookingData.contact.name }}</span>
+            </div>
+            <div class="info-item">
+              <label>Email:</label>
+              <span>{{ bookingData.contact.email }}</span>
+            </div>
+            <div class="info-item">
+              <label>Tel:</label>
+              <span>{{ bookingData.contact.phone }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="price-summary">
+          <div class="price-item">
+            <span>Ticket Price:</span>
+            <span>{{ formatPrice(getTotalTicketPrice(bookingData)) }}</span>
+          </div>
+          <div class="price-item">
+            <span>Service Fee:</span>
+            <span>{{ formatPrice(getTotalServiceFee(bookingData)) }}</span>
+          </div>
+          <div class="price-item total">
+            <span>Total Amount:</span>
+            <span>{{ formatPrice(bookingData.priceAmount) }}</span>
+          </div>
+        </div>
       </div>
-      
-      <div v-else-if="orders.length === 0" class="empty-orders">
-        <el-empty description="暂无订单记录" />
-        <el-button type="primary" @click="goToHome">立即预订</el-button>
-      </div>
-      
-      <div v-else>
-        <el-table :data="orders" style="width: 100%" border>
-          <el-table-column label="订单号" prop="orderId" width="180" />
-          <el-table-column label="出发站" prop="from" />
-          <el-table-column label="到达站" prop="to" />
-          <el-table-column label="出发日期" prop="date" />
-          <el-table-column label="车次" prop="trainNo" width="100" />
-          <el-table-column label="座位类型" prop="seatType" width="120" />
-          <el-table-column label="价格" prop="price" width="100">
-            <template #default="scope">
-              <span>¥{{ scope.row.price }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" prop="status" width="120">
-            <template #default="scope">
-              <el-tag :type="getStatusType(scope.row.status)">
-                {{ getStatusText(scope.row.status) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="150">
-            <template #default="scope">
-              <el-button 
-                v-if="scope.row.status === 'unpaid'" 
-                type="primary" 
-                size="small" 
-                @click="goToPayment(scope.row)"
-              >
-                去支付
-              </el-button>
-              <el-button 
-                type="info" 
-                size="small" 
-                @click="viewOrderDetail(scope.row)"
-              >
-                查看详情
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-    </el-card>
+    </div>
+
+    <div v-else-if="searched" class="no-results">
+      <el-empty description="No orders found with the provided information" />
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getOrders } from '@/api/modules/orders'
+import { getBooking } from '@/api/modules/orders'
+import { useRoute, useRouter } from 'vue-router'
+import { useCurrencyStore } from '@/stores/currencyStore'
+import { storeToRefs } from 'pinia'
 
+const route = useRoute()
 const router = useRouter()
-const loading = ref(true)
-const orders = ref([])
+const currencyStore = useCurrencyStore()
+const { currency, currencySymbol } = storeToRefs(currencyStore)
 
-// 获取订单列表
-const fetchOrders = async () => {
+const searchForm = ref({
+  searchType: 'bookingId',
+  bookingId: '',
+  email: ''
+})
+
+// 站点代码到站点名称的映射
+const stationMap = {
+  'BJP': 'Beijing',
+  'TJP': 'Tianjin',
+  'SHH': 'Shanghai',
+  'GZQ': 'Guangzhou',
+  'SZQ': 'Shenzhen',
+  'CDW': 'Chengdu',
+  'CSQ': 'Changsha',
+  'HZH': 'Hangzhou',
+  'NJH': 'Nanjing',
+  'WHN': 'Wuhan',
+  'XAY': 'Xi\'an'
+}
+
+const loading = ref(false)
+const searched = ref(false)
+const bookingList = ref([])
+
+// 在组件挂载时检查 URL 参数
+onMounted(() => {
+  // 从 URL 参数中获取 bookingId 或 email
+  const urlBookingId = route.query.bookingId
+  const urlEmail = route.query.email
+  
+  if (urlBookingId) {
+    // 如果 URL 中有 bookingId 参数，设置到表单并自动搜索
+    searchForm.value.searchType = 'bookingId'
+    searchForm.value.bookingId = urlBookingId
+    searchBooking()
+  } else if (urlEmail) {
+    // 如果 URL 中有 email 参数，设置到表单并自动搜索
+    searchForm.value.searchType = 'email'
+    searchForm.value.email = urlEmail
+    searchBooking()
+  }
+})
+
+const searchBooking = async () => {
+  const searchType = searchForm.value.searchType
+  const searchValue = searchType === 'bookingId' ? searchForm.value.bookingId : searchForm.value.email
+  
+  if (!searchValue) {
+    ElMessage.warning(`Please enter a ${searchType === 'bookingId' ? 'booking ID' : 'contact email'}`)
+    return
+  }
+
   loading.value = true
+  searched.value = false
+  bookingList.value = []
+
   try {
-    // 这里应该调用实际的API获取订单列表
-    // 目前使用模拟数据
-    const response = await getOrders()
-    orders.value = response.data || []
+    console.log(`Fetching order data for ${searchType}:`, searchValue)
+    let response
+    
+    if (searchType === 'bookingId') {
+      response = await getBooking(searchValue)
+    } else {
+      // Call the API with email parameter
+      response = await getBooking('', searchValue)
+    }
+    
+    console.log('API Response:', response)
+
+    if (response.code !== '0') {
+      throw new Error(response.message || 'Failed to fetch order')
+    }
+
+    if (!response.data || response.data.length === 0) {
+      throw new Error('No orders found')
+    }
+
+    // Handle both single booking and array of bookings
+    if (Array.isArray(response.data)) {
+      bookingList.value = response.data
+    } else {
+      bookingList.value = [response.data]
+    }
+    
+    searched.value = true
+    
+    if (bookingList.value.length > 0) {
+      ElMessage.success(`Found ${bookingList.value.length} order(s)`)
+    } else {
+      ElMessage.warning('No orders found')
+    }
+    
+    console.log('Order data set:', bookingList.value)
   } catch (error) {
-    console.error('获取订单列表失败:', error)
-    ElMessage.error('获取订单列表失败，请稍后重试')
-    orders.value = []
+    console.error('Error fetching order:', error)
+    ElMessage.error(error.message || 'Failed to fetch order details')
+    bookingList.value = []
+    searched.value = true
   } finally {
     loading.value = false
+    console.log('Search completed. Loading:', loading.value, 'Searched:', searched.value, 'Has data:', bookingList.value.length > 0)
   }
 }
 
-// 获取状态标签类型
-const getStatusType = (status) => {
+const formatDate = (datetime) => {
+  if (!datetime) return ''
+  const date = new Date(datetime)
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+const formatTime = (datetime) => {
+  if (!datetime) return ''
+  const date = new Date(datetime)
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+}
+
+const calculateDuration = (departTime, arriveTime) => {
+  if (!departTime || !arriveTime) return ''
+  const start = new Date(departTime)
+  const end = new Date(arriveTime)
+  const diff = end - start
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  return `${hours}h ${minutes}m`
+}
+
+const formatPrice = (price) => {
+  if (price === undefined || price === null) return `${currencyStore.currencySymbol}0.00`
+  
+  // 假设原始价格是人民币（CNY）
+  const originalPrice = Number(price)
+  let convertedPrice = originalPrice
+  
+  // 根据当前选择的货币进行转换
+  const targetCurrency = currencyStore.currency
+  const exchangeRates = currencyStore.exchangeRates
+  
+  if (exchangeRates && targetCurrency !== 'CNY') {
+    // 将人民币转换为目标货币
+    const rate = exchangeRates[targetCurrency]
+    if (rate) {
+      convertedPrice = (originalPrice / rate).toFixed(2)
+    }
+  }
+  
+  return `${currencyStore.currencySymbol}${convertedPrice}`
+}
+
+// 获取乘客类型文本
+const getPassengerType = (type) => {
+  const types = {
+    1: 'Adult',
+    2: 'Child',
+    3: 'Student',
+    4: 'Senior'
+  }
+  return types[type] || 'Unknown'
+}
+
+// 获取支付状态文本
+const getPaymentStatusText = (status) => {
   const statusMap = {
-    'unpaid': 'warning',
-    'paid': 'success',
-    'completed': 'success',
-    'cancelled': 'info',
-    'refunding': 'warning',
-    'refunded': 'info'
+    0: 'Unpaid',
+    1: 'Paid',
+    2: 'Cancelled',
+    3: 'Refunding',
+    4: 'Refunded'
   }
-  return statusMap[status] || 'info'
+  return statusMap[status] || 'Unknown'
 }
 
-// 获取状态文本
-const getStatusText = (status) => {
-  const statusMap = {
-    'unpaid': '待支付',
-    'paid': '已支付',
-    'completed': '已完成',
-    'cancelled': '已取消',
-    'refunding': '退款中',
-    'refunded': '已退款'
+// 获取支付状态标签类型
+const getPaymentStatusType = (status) => {
+  const typeMap = {
+    0: 'warning',
+    1: 'success',
+    2: 'info',
+    3: 'warning',
+    4: 'info'
   }
-  return statusMap[status] || '未知状态'
+  return typeMap[status] || 'info'
 }
 
-// 跳转到支付页面
-const goToPayment = (order) => {
-  router.push(`/trains/pay?orderId=${order.orderId}`)
+// 获取站点名称
+const getStationName = (code) => {
+  return stationMap[code] || code
 }
 
-// 查看订单详情
-const viewOrderDetail = (order) => {
-  // 这里可以跳转到订单详情页或者显示一个对话框
-  ElMessage.info('查看订单详情功能开发中...')
+// 计算所有乘客的票价总和
+const getTotalTicketPrice = (order) => {
+  if (!order.passengers || order.passengers.length === 0) return 0
+  return order.passengers.reduce((sum, passenger) => sum + passenger.price, 0)
 }
 
-// 跳转到首页
-const goToHome = () => {
-  router.push('/')
+// 计算所有乘客的服务费总和
+const getTotalServiceFee = (order) => {
+  if (!order.passengers || order.passengers.length === 0) return 0
+  return order.passengers.reduce((sum, passenger) => sum + passenger.fee, 0)
 }
-
-onMounted(() => {
-  fetchOrders()
-})
 </script>
 
 <style scoped>
-.order-list-container {
-  max-width: 1200px;
+.my-bookings {
+  padding: 20px;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+}
+
+.search-section {
+  max-width: 1000px;
+  margin: 0 auto 24px;
+}
+
+.booking-search {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  padding: 24px;
+}
+
+.search-form {
+  max-width: 500px;
   margin: 0 auto;
-  padding: 20px;
 }
 
-.page-header {
-  margin-bottom: 20px;
+.payment-card {
+  max-width: 1000px;
+  margin: 20px auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  padding: 24px;
 }
 
-.order-list-card {
-  margin-bottom: 20px;
+.header {
+  margin-bottom: 24px;
 }
 
-.loading-container {
-  padding: 20px;
+.order-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
 }
 
-.empty-orders {
+.order-id span {
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.train-orders {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 40px 0;
+  gap: 24px;
 }
 
-.empty-orders .el-button {
-  margin-top: 20px;
+.train-order {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.train-header {
+  background: #f5f7fa;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.train-tag {
+  background: #ff9f00;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.train-route {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+}
+
+.station {
+  flex: 1;
+}
+
+.station .name {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.station .time {
+  color: #606266;
+}
+
+.route-info {
+  text-align: center;
+  padding: 0 40px;
+}
+
+.standing {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 4px;
+}
+
+.passengers {
+  padding: 0 20px 20px;
+}
+
+.passenger-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.passenger-table th,
+.passenger-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.text-right {
+  text-align: right !important;
+}
+
+.contact-info {
+  margin: 24px 0;
+}
+
+.contact-info h3 {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.info-item label {
+  color: #606266;
+  margin-right: 8px;
+}
+
+.price-summary {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #ebeef5;
+}
+
+.price-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  color: #606266;
+}
+
+.price-item.total {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ebeef5;
+  font-weight: 500;
+  color: #303133;
+}
+
+.no-results {
+  margin-top: 24px;
+  text-align: center;
 }
 </style>
