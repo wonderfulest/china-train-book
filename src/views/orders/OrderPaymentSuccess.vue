@@ -142,7 +142,7 @@
         <el-button type="primary" @click="downloadOrderDetails">
           <el-icon><Download /></el-icon>Download Order Details
         </el-button>
-        <el-button @click="viewBookings">View My Bookings</el-button>
+        <el-button @click="viewBookings">View Orders</el-button>
         <el-button @click="backToHome">Back to Home</el-button>
       </div>
 
@@ -305,7 +305,7 @@ const backToHome = () => {
 }
 
 const viewBookings = () => {
-  router.push('/my-bookings')
+  router.push('/orders')
 }
 
 const contactSupport = () => {
@@ -374,86 +374,98 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  background-color: #f5f7fa;
+  padding: 24px;
+  background-color: #f5f5f5;
 }
 
 .success-card {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.15);
   padding: 40px;
-  max-width: 800px;
+  max-width: 900px;
   width: 100%;
+  border: 1px solid #e4e7ed;
+  border-bottom: 3px solid #e4e7ed;
 }
 
 .success-header {
   text-align: center;
   margin-bottom: 40px;
+  border-bottom: 1px solid #dcdfe6;
+  padding-bottom: 20px;
 
   .order-id {
-    margin-top: 1rem;
-    font-size: 1.1rem;
-    color: #606266;
+    margin-top: 1.2rem;
+    font-size: 1.2rem;
+    color: #303133;
 
     .save-reminder {
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
+      margin-top: 0.6rem;
+      font-size: 1rem;
       color: #f56c6c;
+      font-weight: 500;
     }
   }
 
   .order-id span {
     font-weight: 600;
-    color: #409EFF;
+    color: #303133;
   }
 }
 
 .success-icon {
-  font-size: 64px;
+  font-size: 70px;
   color: #67c23a;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 h1 {
   color: #303133;
-  font-size: 28px;
-  margin: 0 0 8px;
+  font-size: 30px;
+  margin: 0 0 10px;
+  font-weight: 600;
 }
 
 .subtitle {
   color: #606266;
-  font-size: 16px;
+  font-size: 18px;
   margin: 0;
 }
 
 .info-section {
   margin: 40px 0;
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  border: 1px solid #dcdfe6;
 }
 
 h2 {
   color: #303133;
-  font-size: 20px;
+  font-size: 22px;
   margin: 0 0 24px;
+  font-weight: 600;
 }
 
 h3 {
   color: #303133;
-  font-size: 18px;
-  margin: 0 0 16px;
+  font-size: 20px;
+  margin: 0 0 18px;
+  font-weight: 600;
 }
 
 .order-details {
   margin-bottom: 30px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid #dcdfe6;
   border-radius: 8px;
-  padding: 20px;
-  background-color: #f9f9f9;
+  padding: 24px;
+  background-color: #f5f5f5;
 }
 
 .train-info {
-  margin-bottom: 20px;
-  border: 1px solid #e4e7ed;
+  margin-bottom: 24px;
+  border: 1px solid #dcdfe6;
   border-radius: 8px;
   overflow: hidden;
   background-color: white;
@@ -462,23 +474,25 @@ h3 {
 .train-header {
   display: flex;
   justify-content: space-between;
-  padding: 15px;
-  background-color: #f5f7fa;
-  border-bottom: 1px solid #e4e7ed;
+  padding: 16px 20px;
+  background-color: #f5f5f5;
+  border-bottom: 2px solid #dcdfe6;
 }
 
 .train-tag {
-  font-weight: bold;
-  color: #409eff;
+  font-weight: 600;
+  color: #303133;
+  font-size: 16px;
 }
 
 .train-date {
   color: #606266;
+  font-size: 15px;
 }
 
 .train-route {
   display: flex;
-  padding: 20px;
+  padding: 24px;
 }
 
 .station {
@@ -494,54 +508,60 @@ h3 {
 }
 
 .name {
-  font-weight: bold;
-  font-size: 16px;
-  margin-bottom: 5px;
+  font-weight: 600;
+  font-size: 18px;
+  margin-bottom: 6px;
+  color: #303133;
 }
 
 .time {
   color: #606266;
+  font-size: 16px;
 }
 
 .seat-type {
-  font-weight: bold;
-  color: #409eff;
-  margin-bottom: 5px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 6px;
+  font-size: 16px;
 }
 
 .duration {
   color: #606266;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .payment-info {
   background-color: white;
-  border: 1px solid #e4e7ed;
+  border: 1px solid #dcdfe6;
   border-radius: 8px;
-  padding: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
 }
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-  margin-top: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 24px;
+  margin-top: 16px;
 }
 
 .transaction-id {
   font-family: monospace;
-  font-size: 0.9rem;
-  color: #409eff;
+  font-size: 1rem;
+  color: #303133;
   word-break: break-all;
+  font-weight: 500;
 }
 
 .passengers-info,
 .contact-info {
-  margin-top: 20px;
+  margin-top: 24px;
   background-color: white;
-  border: 1px solid #e4e7ed;
+  border: 1px solid #dcdfe6;
   border-radius: 8px;
-  padding: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
 }
 
 .info-item {
@@ -550,9 +570,15 @@ h3 {
 }
 
 .info-item label {
-  font-size: 14px;
-  color: #909399;
-  margin-bottom: 5px;
+  font-size: 15px;
+  color: #606266;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.info-item div {
+  font-size: 16px;
+  color: #303133;
 }
 
 .status {
@@ -561,35 +587,41 @@ h3 {
 
 .status.success {
   color: #67c23a;
+  font-size: 16px;
 }
 
 .loading-state {
-  padding: 20px;
+  padding: 24px;
 }
 
 .steps {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
 }
 
 .step {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   align-items: flex-start;
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #dcdfe6;
 }
 
 .step-number {
-  background: #409eff;
+  background: #303133;
   color: white;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
+  font-weight: 600;
   flex-shrink: 0;
+  font-size: 16px;
 }
 
 .step-content {
@@ -598,31 +630,36 @@ h3 {
 
 .step-content h3 {
   color: #303133;
-  font-size: 16px;
-  margin: 0 0 8px;
+  font-size: 18px;
+  margin: 0 0 10px;
+  font-weight: 600;
 }
 
 .step-content p {
   color: #606266;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.6;
+  font-size: 15px;
 }
 
 .actions {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   justify-content: center;
   margin-top: 40px;
 }
 
 .contact-support {
   text-align: center;
-  margin-top: 24px;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #dcdfe6;
 }
 
 .contact-support p {
   color: #606266;
   margin: 0;
+  font-size: 15px;
 }
 
 @media (max-width: 768px) {

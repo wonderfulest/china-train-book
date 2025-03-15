@@ -130,9 +130,9 @@ const currency = computed({
   left: 0;
   right: 0;
   z-index: 100;
-  background: #fff;
-  height: 64px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  background: var(--bg-color-dark);
+  height: 60px;
+  box-shadow: var(--shadow-header);
 }
 
 .header-content {
@@ -141,7 +141,6 @@ const currency = computed({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
   margin: 0 auto;
 }
 
@@ -152,7 +151,7 @@ const currency = computed({
 }
 
 .header-logo {
-  height: 40px;
+  height: 30px;
   width: auto;
 }
 
@@ -171,6 +170,10 @@ const currency = computed({
   flex: 1;
 }
 
+:deep(.el-menu--horizontal) {
+  background-color: var(--bg-color-dark);
+}
+
 .nav-menu:not(.el-menu--collapse) {
   border: none !important;
 }
@@ -180,7 +183,7 @@ const currency = computed({
   border-bottom: none !important;
   display: flex;
   justify-content: flex-start;
-  height: 64px;
+  height: 60px;
 }
 
 :deep(.el-menu) {
@@ -196,21 +199,21 @@ const currency = computed({
 .nav-menu :deep(.el-menu-item),
 .nav-menu :deep(.el-sub-menu__title) {
   font-size: 14px;
-  color: #333;
-  height: 64px;
-  line-height: 64px;
+  color: var(--text-color-light);
+  height: 60px;
+  line-height: 60px;
   text-transform: uppercase;
   padding: 0 24px 0 16px !important;
   white-space: nowrap;
   display: flex;
   align-items: center;
   position: relative;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .nav-menu :deep(.el-sub-menu) {
-  height: 64px;
-  line-height: 64px;
+  height: 60px;
+  line-height: 60px;
 }
 
 .nav-menu :deep(.el-sub-menu__title) {
@@ -236,8 +239,8 @@ const currency = computed({
 }
 
 .nav-menu :deep(.el-menu-item.is-active) {
-  color: #ff3366;
-  font-weight: 500;
+  color: var(--button-color);
+  font-weight: 700;
 }
 
 .nav-menu :deep(.el-menu-item)::after,
@@ -254,26 +257,27 @@ const currency = computed({
 }
 
 .nav-menu :deep(.el-menu-item.is-active)::after {
-  background-color: #ff3366;
+  background-color: var(--button-color);
   transform: scaleX(1);
 }
 
 /* 订单流程步骤样式 */
 .process-active {
-  color: #ff3366 !important;
+  color: var(--button-color) !important;
   font-weight: bold !important;
 }
 
 .process-completed {
-  color: #303133 !important;
-  font-weight: 500 !important;
+  color: var(--text-color-light) !important;
+  font-weight: 700 !important;
 }
 
 .process-disabled {
-  color: #909399 !important;
-  font-weight: 400 !important;
-  cursor: not-allowed !important;
-  opacity: 0.7;
+  /* color: var(--disabled-color) !important; */
+  /* font-weight: 400 !important; */
+
+  /* cursor: not-allowed !important; */
+  opacity: 1;
 }
 
 .step-number {
@@ -283,30 +287,32 @@ const currency = computed({
   line-height: 24px;
   text-align: center;
   border-radius: 50%;
-  background-color: #ff3366;
-  color: white;
+  background-color: var(--button-color);
+  color: var(--text-color-light);
   margin-right: 8px;
   font-size: 14px;
   font-weight: bold;
 }
 
 .process-completed .step-number {
-  background-color: #303133;
+  background-color: var(--completed-color);
 }
 
 .process-disabled .step-number {
-  background-color: #909399;
+  background-color: var(--disabled-bg-color);
 }
 
 .nav-menu :deep(.el-menu-item:hover),
 .nav-menu :deep(.el-sub-menu:hover .el-sub-menu__title) {
-  color: #ff3366;
-  background-color: transparent;
+  color: var(--button-color);
+  background-color: var(--bg-color-hover);
 }
 
 :deep(.el-menu--popup) {
   min-width: 200px;
   padding: 4px 0;
+  background-color: var(--bg-color-dark) !important;
+  border: 1px solid var(--bg-color-hover);
 }
 
 :deep(.el-menu--popup .el-menu-item) {
@@ -315,7 +321,17 @@ const currency = computed({
   padding: 0 20px !important;
   font-size: 14px;
   justify-content: flex-start;
-  font-weight: 900;
+  font-weight: 700;
+  color: var(--text-color-light) !important;
+}
+
+:deep(.el-menu--popup .el-menu-item:hover) {
+  background-color: var(--bg-color-hover) !important;
+  color: var(--button-color) !important;
+}
+
+:deep(.el-menu--popup .el-menu-item.is-active) {
+  color: var(--button-color) !important;
 }
 
 @media (max-width: 1200px) {
@@ -346,7 +362,7 @@ const currency = computed({
   }
   
   .header-logo {
-    height: 32px;
+    height: 30px;
   }
   
   .nav-menu {
@@ -368,6 +384,6 @@ const currency = computed({
 }
 
 .my-bookings {
-  color: #ff3366 !important;
+  color: var(--button-color) !important;
 }
 </style>

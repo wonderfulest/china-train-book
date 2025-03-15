@@ -11,6 +11,7 @@
     "lint": "eslint --ext .js,.vue src/"
   },
   "dependencies": {
+    "@iconify/vue": "^4.3.0",
     "@vercel/analytics": "^1.4.1",
     "date-fns": "^4.1.0",
     "pinia": "^2.3.1",

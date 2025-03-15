@@ -480,21 +480,26 @@ onMounted(async () => {
 
 <style scoped>
 .order-payment-page {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 24px;
   font-family: Arial, sans-serif;
+  background-color: #f5f5f5;
 }
 
 .payment-container {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.15);
   padding: 30px;
+  border: 1px solid #e4e7ed;
+  border-bottom: 3px solid #e4e7ed;
 }
 
 .payment-header {
   margin-bottom: 30px;
+  border-bottom: 1px solid #dcdfe6;
+  padding-bottom: 15px;
 }
 
 .order-info {
@@ -504,18 +509,18 @@ onMounted(async () => {
 }
 
 .order-id {
-  font-size: 16px;
-  color: #606266;
+  font-size: 18px;
+  color: #303133;
 }
 
 .order-id span {
-  font-weight: bold;
-  color: #409eff;
+  font-weight: 600;
+  color: #303133;
 }
 
 .train-info {
   margin-bottom: 30px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid #dcdfe6;
   border-radius: 8px;
   overflow: hidden;
 }
@@ -523,23 +528,25 @@ onMounted(async () => {
 .train-header {
   display: flex;
   justify-content: space-between;
-  padding: 15px;
-  background-color: #f5f7fa;
-  border-bottom: 1px solid #e4e7ed;
+  padding: 16px 20px;
+  background-color: #f5f5f5;
+  border-bottom: 2px solid #dcdfe6;
 }
 
 .train-tag {
-  font-weight: bold;
-  color: #409eff;
+  font-weight: 600;
+  color: #303133;
+  font-size: 16px;
 }
 
 .train-date {
   color: #606266;
+  font-size: 15px;
 }
 
 .train-route {
   display: flex;
-  padding: 20px;
+  padding: 24px;
 }
 
 .station {
@@ -555,52 +562,63 @@ onMounted(async () => {
 }
 
 .name {
-  font-weight: bold;
-  font-size: 16px;
-  margin-bottom: 5px;
+  font-weight: 600;
+  font-size: 18px;
+  margin-bottom: 6px;
+  color: #303133;
 }
 
 .time {
   color: #606266;
+  font-size: 16px;
 }
 
 .seat-type {
-  font-weight: bold;
-  color: #409eff;
-  margin-bottom: 5px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 6px;
+  font-size: 16px;
 }
 
 .duration {
   color: #606266;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .passengers-section, .contact-info, .price-summary, .payment-methods {
   margin-bottom: 30px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #ebeef5;
+  padding: 20px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  background-color: #f5f5f5;
 }
 
 h3 {
-  font-size: 18px;
-  margin-bottom: 15px;
+  font-size: 20px;
+  margin-bottom: 20px;
   color: #303133;
+  font-weight: 600;
 }
 
 .passenger-table {
   width: 100%;
   border-collapse: collapse;
+  background-color: white;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 .passenger-table th, .passenger-table td {
-  padding: 12px 15px;
+  padding: 14px 16px;
   text-align: left;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid #dcdfe6;
+  font-size: 15px;
 }
 
 .passenger-table th {
-  background-color: #f5f7fa;
+  background-color: #f5f5f5;
   font-weight: 600;
+  color: #303133;
 }
 
 .passenger-table .text-right {
@@ -619,35 +637,41 @@ h3 {
 }
 
 .info-item label {
-  font-weight: bold;
-  margin-bottom: 5px;
+  font-weight: 600;
+  margin-bottom: 6px;
   color: #606266;
+  font-size: 15px;
 }
 
 .price-details {
-  background-color: #f5f7fa;
-  padding: 15px;
+  background-color: white;
+  padding: 20px;
   border-radius: 6px;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  border: 1px solid #dcdfe6;
 }
 
 .price-detail-item {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
-  font-size: 14px;
+  margin-bottom: 12px;
+  font-size: 15px;
+  color: #606266;
 }
 
 .price-detail-item.total {
-  margin-top: 15px;
-  padding-top: 15px;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 1px solid #dcdfe6;
-  font-weight: bold;
+  font-weight: 600;
+  color: #303133;
+  font-size: 18px;
 }
 
 .total-value {
-  font-size: 18px;
-  color: #409eff;
+  font-size: 20px;
+  color: #303133;
+  font-weight: 600;
 }
 
 .refundable-fee {

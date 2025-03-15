@@ -342,51 +342,58 @@ const getTotalServiceFee = (order) => {
 
 <style scoped>
 .my-bookings {
-  padding: 20px;
-  background-color: #f5f7fa;
+  padding: 24px;
+  background-color: #f5f5f5;
   min-height: 100vh;
+  width: 80%;
+  margin: 0 auto;
 }
 
 .search-section {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto 24px;
 }
 
 .booking-search {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  padding: 24px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.15);
+  padding: 30px;
 }
 
 .search-form {
-  max-width: 500px;
+  max-width: 600px;
   margin: 0 auto;
 }
 
 .payment-card {
-  max-width: 1000px;
-  margin: 20px auto;
+  max-width: 1200px;
+  margin: 24px auto;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  padding: 24px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.15);
+  padding: 30px;
+  border: 1px solid #e4e7ed;
+  border-bottom: 3px solid #e4e7ed;
 }
 
 .header {
-  margin-bottom: 24px;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 15px;
 }
 
 .order-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .order-id span {
-  font-weight: 500;
+  font-weight: 600;
   margin-left: 4px;
+  color: #303133;
 }
 
 .train-orders {
@@ -396,29 +403,31 @@ const getTotalServiceFee = (order) => {
 }
 
 .train-order {
-  border: 1px solid #ebeef5;
+  border: 1px solid #dcdfe6;
   border-radius: 4px;
   overflow: hidden;
 }
 
 .train-header {
-  background: #f5f7fa;
-  padding: 12px 16px;
+  background: #f5f5f5;
+  padding: 16px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 2px solid #dcdfe6;
 }
 
 .train-tag {
-  background: #ff9f00;
+  background: #303133;
   color: white;
-  padding: 2px 8px;
+  padding: 4px 10px;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .train-route {
-  padding: 20px;
+  padding: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -430,13 +439,16 @@ const getTotalServiceFee = (order) => {
 }
 
 .station .name {
-  font-size: 16px;
-  font-weight: 500;
-  margin-bottom: 4px;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #303133;
 }
 
 .station .time {
   color: #606266;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .route-info {
@@ -445,13 +457,14 @@ const getTotalServiceFee = (order) => {
 }
 
 .standing {
-  font-size: 14px;
-  color: #606266;
-  margin-bottom: 4px;
+  font-size: 16px;
+  color: #303133;
+  margin-bottom: 6px;
+  font-weight: 500;
 }
 
 .passengers {
-  padding: 0 20px 20px;
+  padding: 0 24px 24px;
 }
 
 .passenger-table {
@@ -461,9 +474,16 @@ const getTotalServiceFee = (order) => {
 
 .passenger-table th,
 .passenger-table td {
-  padding: 12px;
+  padding: 14px;
   text-align: left;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid #dcdfe6;
+  font-size: 15px;
+}
+
+.passenger-table th {
+  font-weight: 600;
+  color: #303133;
+  background-color: #f5f5f5;
 }
 
 .text-right {
@@ -471,48 +491,69 @@ const getTotalServiceFee = (order) => {
 }
 
 .contact-info {
-  margin: 24px 0;
+  margin: 30px 0;
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  border: 1px solid #dcdfe6;
 }
 
 .contact-info h3 {
-  font-size: 16px;
-  margin-bottom: 16px;
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: #303133;
+  font-weight: 600;
 }
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
 }
 
 .info-item label {
   color: #606266;
   margin-right: 8px;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.info-item span {
+  font-size: 15px;
+  color: #303133;
 }
 
 .price-summary {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid #ebeef5;
+  margin-top: 30px;
+  padding: 20px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  background-color: #f5f5f5;
 }
 
 .price-item {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   color: #606266;
+  font-size: 16px;
 }
 
 .price-item.total {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #ebeef5;
-  font-weight: 500;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #dcdfe6;
+  font-weight: 600;
   color: #303133;
+  font-size: 18px;
 }
 
 .no-results {
-  margin-top: 24px;
+  margin-top: 30px;
   text-align: center;
+  padding: 40px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 </style>
