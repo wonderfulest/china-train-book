@@ -128,7 +128,7 @@
 import { ref, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getBooking } from '@/api/modules/orders'
+import { getOrders } from '@/api/modules/orders'
 import { useRoute, useRouter } from 'vue-router'
 import { useCurrencyStore } from '@/stores/currencyStore'
 import { storeToRefs } from 'pinia'
@@ -200,10 +200,10 @@ const searchBooking = async () => {
     let response
     
     if (searchType === 'bookingId') {
-      response = await getBooking(searchValue)
+      response = await getOrders(searchValue)
     } else {
       // Call the API with email parameter
-      response = await getBooking('', searchValue)
+      response = await getOrders('', searchValue)
     }
     
     console.log('API Response:', response)

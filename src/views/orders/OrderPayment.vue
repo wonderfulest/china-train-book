@@ -220,7 +220,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElLoading } from 'element-plus'
 import { Check, Lock } from '@element-plus/icons-vue'
-import { getOrderById, completePayment } from '@/api/modules/orders'
+import { getOrderById, paymentCallback } from '@/api/modules/orders'
 import { useBookingStore } from '@/stores/bookingProcess'
 import { useCurrencyStore } from '@/stores/currencyStore'
 
@@ -428,7 +428,7 @@ function initPayPalButton() {
         
         // 调用后端支付完成API
         try {
-          await completePayment(orderId.value, 'paypal', details.id, details);
+          await paymentCallback(orderId.value, 'paypal', details.id, details);
           console.log('Payment completion API call successful');
           
           // 导航到成功页面

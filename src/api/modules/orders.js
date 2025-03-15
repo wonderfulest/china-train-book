@@ -1,29 +1,5 @@
 import request from "../request";
 
-
-// 创建订单搜索
-export const createOrderSearch = (params) => {
-  return request({
-    url: '/orders/search',
-    method: 'post',
-    data: {
-      from: params.from,
-      to: params.to,
-      date: params.date,
-      isStudent: params.isStudent ?? false
-    }
-  })
-}
-
-// 获取订单时刻表
-export const getOrderTimetable = (orderId, params) => {
-  return request({
-    url: `/orders/${orderId}/timetable`,
-    method: 'post',
-    data: params || {}
-  })
-}
-
 // 获取订单详情
 export const getOrderById = (orderId) => {
   return request({
@@ -32,51 +8,8 @@ export const getOrderById = (orderId) => {
   });
 };
 
-// 更新订单乘客信息
-export const updateOrderPassengers = (orderId, passengerData) => {
-  return request({
-    url: `/orders/${orderId}/passengers`,
-    method: 'post',
-    data: passengerData
-  });
-};
-
-// 完成订单支付
-export const completePayment = (orderId, paymentMethod, paymentId, details) => {
-  return request({
-    url: `/orders/${orderId}/payment/complete`,
-    method: 'post',
-    data: {
-      paymentMethod,
-      paymentId,
-      details
-    }
-  });
-};
-
-// 支付回调
-export const paymentCallback = (bookingId) => {
-  return request({
-    url: "/booking/payment/callback",
-    method: "post",
-    params: { bookingId },
-  });
-};
-
-
-
-
-// 废弃
-
-export const submitBooking = (bookForm) => {
-  return request({
-    url: "/booking/create",
-    method: "post",
-    data: bookForm,
-  });
-};
-
-export const getBooking = (bookingId, email) => {
+// 查询订单
+export const getOrders = (bookingId, email) => {
   if (bookingId) {
     return request({
       url: `/orders/${bookingId}`,
@@ -94,3 +27,71 @@ export const getBooking = (bookingId, email) => {
   }
   return null;
 };
+
+
+// 创建订单搜索
+export const createOrderSearch = (params) => {
+  return request({
+    url: '/orders/search',
+    method: 'post',
+    data: {
+      from: params.from,
+      to: params.to,
+      date: params.date,
+      isStudent: params.isStudent ?? false
+    }
+  })
+}
+
+// 2.获取订单时刻表
+export const getOrderTimetable = (orderId, params) => {
+  return request({
+    url: `/orders/${orderId}/timetable`,
+    method: 'post',
+    data: params || {}
+  })
+}
+
+
+// 2.更新订单的车次和座位选择
+export const updateOrderTrainSeat = (orderId, trainSeatData) => {
+  return request({
+    url: `/orders/${orderId}/trainSeat`,
+    method: 'post',
+    data: {
+      orderId: orderId,
+      step: trainSeatData.step || 2,
+      trainNo: trainSeatData.trainNo,
+      from: trainSeatData.from,
+      to: trainSeatData.to,
+      date: trainSeatData.date,
+      seatType: trainSeatData.seatType,
+      departTime: trainSeatData.departTime,
+      arriveTime: trainSeatData.arriveTime,
+      price: trainSeatData.seatPrice // 确保传递正确的价格字段名
+    }
+  });
+};
+
+// 3.更新订单乘客信息
+export const updateOrderPassengers = (orderId, passengerData) => {
+  return request({
+    url: `/orders/${orderId}/passengers`,
+    method: 'post',
+    data: passengerData
+  });
+};
+
+// 4.完成订单支付
+export const paymentCallback = (orderId, paymentMethod, paymentId, details) => {
+  return request({
+    url: `/orders/${orderId}/payment/complete`,
+    method: 'post',
+    data: {
+      paymentMethod,
+      paymentId,
+      details
+    }
+  });
+};
+
