@@ -8,6 +8,7 @@ import 'element-plus/dist/index.css'
 import '@/assets/styles/reset.css'
 import '@/assets/styles/theme.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import { Icon } from '@iconify/vue'
 import { inject } from '@vercel/analytics'
 import { initGoogleAnalytics, trackPageView } from './utils/analytics'
 import './style.css'
@@ -28,6 +29,9 @@ pinia.use(piniaPluginPersistedstate)
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
+
+// 全局注册 Iconify 的 Icon 组件
+app.component('Icon', Icon)
 
 app.use(pinia)
 app.use(router)

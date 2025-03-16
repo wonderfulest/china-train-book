@@ -52,7 +52,6 @@ export const getOrderTimetable = (orderId, params) => {
   })
 }
 
-
 // 2.更新订单的车次和座位选择
 export const updateOrderTrainSeat = (orderId, trainSeatData) => {
   return request({
@@ -60,15 +59,18 @@ export const updateOrderTrainSeat = (orderId, trainSeatData) => {
     method: 'post',
     data: {
       orderId: orderId,
-      step: trainSeatData.step || 2,
+      step: 2,
       trainNo: trainSeatData.trainNo,
       from: trainSeatData.from,
       to: trainSeatData.to,
       date: trainSeatData.date,
-      seatType: trainSeatData.seatType,
       departTime: trainSeatData.departTime,
       arriveTime: trainSeatData.arriveTime,
-      price: trainSeatData.seatPrice // 确保传递正确的价格字段名
+      seatType: trainSeatData.seatType,
+      seatPriceRaw: trainSeatData.seatPriceRaw,
+      seatPrice: trainSeatData.seatPrice,
+      seatFee: trainSeatData.seatFee,
+      seatPriceTotal: trainSeatData.seatPriceTotal
     }
   });
 };

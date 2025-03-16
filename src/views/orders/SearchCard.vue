@@ -1,5 +1,5 @@
 <template>
-  <div class="search-container">
+  <div class="search-container" :style="{ width: customWidth, height: customHeight }">
     <div class="search-form-row">
       <!-- 日期选择 -->
       <div class="date-picker-container" @click="openDatePicker">
@@ -106,7 +106,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, defineProps } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCityStore } from '@/stores/city'
 import { useBookingStore } from '@/stores/bookingProcess'
@@ -337,6 +337,28 @@ const handleFocus = async () => {
     }
   }
 }
+
+const props = defineProps({
+  width: {
+    type: String,
+    default: '100%'
+  },
+  height: {
+    type: String,
+    default: 'auto'
+  }
+})
+
+const customWidth = ref(props.width)
+const customHeight = ref(props.height)
+
+watch(() => props.width, (newVal) => {
+  customWidth.value = newVal
+}, { immediate: true })
+
+watch(() => props.height, (newVal) => {
+  customHeight.value = newVal
+}, { immediate: true })
 </script>
 
 <style scoped>

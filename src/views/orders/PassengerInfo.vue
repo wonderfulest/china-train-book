@@ -16,7 +16,7 @@
             </div>
             <div class="journey-details">
               <div class="station-info">
-                <div class="station-name">{{ ticketInfo.from }}</div>
+                <div class="station-name">{{ ticketInfo.from }} - {{ ticketInfo.departTime }}</div>
                 <div class="station-details" v-if="stationDetails[ticketInfo.from]">{{ stationDetails[ticketInfo.from] }}</div>
               </div>
               <div class="train-info">

@@ -1,98 +1,61 @@
 <template>
-  <div class="search-results">
-    <div class="search-header">
-      <div class="search-params">
-        <div class="param">
-          <label>From</label>
-          <el-autocomplete id="from-search" v-model="from" :fetch-suggestions="querySearch" placeholder="Enter departure city" class="full-width" :trigger-on-focus="true" popper-class="city-autocomplete" @select="handleSelect">
-            <template #prefix>
-              <el-icon><Location /></el-icon>
-            </template>
-            <template #default="{ item }">
-              <div class="suggestion-group">
-                <div class="suggestion-group-label">{{ item.label }}</div>
-                <div class="suggestion-list">
-                  <div v-for="city in item.cities" :key="city.stationCode" class="suggestion-item" @click.stop="handleSelect(city)">
-                    <span v-html="city.displayPinyin"></span>
-                  </div>
-                </div>
-              </div>
-            </template>
-          </el-autocomplete>
-        </div>
-        <div class="exchange-button">
-          <el-icon class="swap-icon" @click="swapLocations"><Switch /></el-icon>
-        </div>
-        <div class="param">
-          <label>To</label>
-          <el-autocomplete id="to-search" v-model="to" :fetch-suggestions="querySearch" placeholder="Enter destination city" class="full-width" :trigger-on-focus="true" popper-class="city-autocomplete" @select="handleSelect">
-            <template #prefix>
-              <el-icon><Location /></el-icon>
-            </template>
-            <template #default="{ item }">
-              <div class="suggestion-group">
-                <div class="suggestion-group-label">{{ item.label }}</div>
-                <div class="suggestion-list">
-                  <div v-for="city in item.cities" :key="city.stationCode" class="suggestion-item" @click.stop="handleSelect(city)">
-                    <span v-html="city.displayPinyin"></span>
-                  </div>
-                </div>
-              </div>
-            </template>
-          </el-autocomplete>
-        </div>
-        <div class="param">
-          <label>Date</label>
-          <el-date-picker v-model="date" type="date" placeholder="Select Date" :disabled-date="disabledDate" format="YYYY-MM-DD" value-format="YYYY-MM-DD" :shortcuts="dateShortcuts" style="width: 100%" />
-        </div>
-        <el-button type="primary" class="search-btn" @click="searchTrains">Search</el-button>
-      </div>
-      <div class="filters">
-        <div class="filter-group">
-          <label>Train Type:</label>
-          <el-select v-model="trainType" placeholder="All Trains" class="filter-select">
-            <el-option label="All Trains" value="" />
-            <el-option label="High Speed G" value="G" />
-            <el-option label="High Speed D" value="D" />
-            <el-option label="Normal K" value="K" />
-          </el-select>
-        </div>
-        <div class="filter-group">
-          <label>Depart Times:</label>
-          <el-select v-model="departTime" placeholder="All Times" class="filter-select">
-            <el-option label="All Times" value="" />
-            <el-option label="Morning (6:00-12:00)" value="morning" />
-            <el-option label="Afternoon (12:00-18:00)" value="afternoon" />
-            <el-option label="Evening (18:00-24:00)" value="evening" />
-          </el-select>
-        </div>
-        <div class="filter-group">
-          <label>Depart Stations:</label>
-          <el-select v-model="departStation" placeholder="All Stations" class="filter-select">
-            <el-option label="All Stations" value="" />
-            <el-option label="Shanghai Hongqiao" value="hongqiao" />
-            <el-option label="Shanghai" value="shanghai" />
-          </el-select>
-        </div>
-      </div>
+  <div class="container">
+  <div class="search-params-display" @click="showSearchCard = true">
+    <div class="date-info">
+      <Icon icon="ic:round-arrow-left" width="24" height="24" style="color: var(--el-button-primary-background)" />
+      <span class="date-text">{{ formatDate(date) }}</span>
+      <Icon icon="ic:round-arrow-right" width="24" height="24" style="color: var(--el-button-primary-background)" />
     </div>
+    <div class="route-info">
+      <span class="city">{{ fromStation?.label || "From" }}</span>
+      <span class="direction-icon">→</span>
+      <span class="city">{{ toStation?.label || "To" }}</span>
+    </div>
+    <div class="edit-icon">
+      <Icon icon="material-symbols:edit" width="16" height="16" style="color: var(--el-button-primary-background)" />
+      <span style="color: var(--el-button-primary-background)">Edit</span>
+    </div>
+  </div>
+  <!-- 搜索卡片弹出层 -->
+  <div v-if="showSearchCard" class="search-card-overlay" @click="showSearchCard = false">
+    <div class="search-card-container" @click.stop>
+      <SearchCard @search="handleSearchCardSubmit" width="100%" height="auto" />
+    </div>
+  </div>
+  <!-- 搜索结果 -->
+  <div class="search-results">
+    <!-- <div class="sort-section">
+      <span class="result-count">{{ trains.length }} results sorted by</span>
+      <div class="sort-options">
+        <div class="sort-option" :class="{ active: sortBy === 'departTime' }" @click="setSortOption('departTime')">
+          Departure time
+          <Icon :icon="sortBy === 'departTime' ? (sortDirection === 'asc' ? 'mdi:arrow-up' : 'mdi:arrow-down') : 'mdi:arrow-down'" width="16" height="16" />
+        </div>
+        <div class="sort-option" :class="{ active: sortBy === 'travelTime' }" @click="setSortOption('travelTime')">
+          Travel time
+          <Icon :icon="sortBy === 'travelTime' ? (sortDirection === 'asc' ? 'mdi:arrow-up' : 'mdi:arrow-down') : 'mdi:arrow-down'" width="16" height="16" />
+        </div>
+        <div class="sort-option" :class="{ active: sortBy === 'price' }" @click="setSortOption('price')">
+          Price
+          <Icon :icon="sortBy === 'price' ? (sortDirection === 'asc' ? 'mdi:arrow-up' : 'mdi:arrow-down') : 'mdi:arrow-down'" width="16" height="16" />
+        </div>
+      </div>
+    </div> -->
 
     <div class="results-list">
       <el-empty v-if="!loading && trains.length === 0" description="No trains found" />
-      <el-skeleton v-if="loading" :rows="3" animated />
-
       <template v-if="!loading && trains.length > 0">
         <div v-for="train in trains" :key="train.id" class="train-card" :class="{ expanded: train.expanded }">
           <div class="train-item">
             <!-- Departure information -->
             <div class="col departure-section">
               <div class="time-large">{{ train.departTime }}</div>
-              <div class="station">{{ train.departStation }}</div>
+              <div class="station">{{ formatStation(train.departStation) }}</div>
             </div>
 
             <!-- Connection line with distance -->
             <div class="col connection-section">
-              <div class="distance">{{ train.distance || "34m" }}</div>
+              <div class="distance">{{ formatDuration(train.duration) }}</div>
               <div class="connection-line">
                 <div class="connection-dot start"></div>
                 <div class="connection-dot end"></div>
@@ -102,7 +65,7 @@
             <!-- Arrival information -->
             <div class="col arrival-section">
               <div class="time-large">{{ train.arrivalTime }}</div>
-              <div class="station">{{ train.arrivalStation }}</div>
+              <div class="station">{{ formatStation(train.arrivalStation) }}</div>
             </div>
 
             <!-- Train type info -->
@@ -114,7 +77,7 @@
             <!-- Price section as separate column -->
             <div class="price-section-column">
               <div class="from-price">
-                from <span class="price-value">{{ currencySymbol }}{{ convertPrice(train.minPrice) || 36 }}</span>
+                from <span class="price-value">{{ currencySymbol }}{{ convertPrice(train.minPrice) || "--" }}</span>
               </div>
               <div class="train-date">{{ formatDate(date) }}</div>
             </div>
@@ -151,7 +114,9 @@
 
                 <!-- Right side: Seat options -->
                 <div class="dialog-seat-options">
+
                   <div v-for="(seat, index) in train.seats" :key="seat.type" class="dialog-seat-option" :class="{ selected: selectedSeatIndex === index }" @click="selectSeat(index)">
+                    <div> {{ seat }}</div>
                     <div class="dialog-seat-info">
                       <div class="dialog-seat-type">{{ seat.type }}</div>
                       <div class="dialog-seat-amenities">
@@ -162,7 +127,7 @@
                     <div class="dialog-seat-price-section" :class="{ 'selected-price-section': selectedSeatIndex === index }">
                       <div class="dialog-price">
                         <div class="dialog-price-currency">{{ currencySymbol }}</div>
-                        <div class="dialog-price-amount">{{ convertPrice(seat.price) }}</div>
+                        <div class="dialog-price-amount"> {{ convertPrice(seat.seatPriceTotal) }}</div>
                       </div>
                       <div class="dialog-per-seat">Per seat</div>
                       <el-button v-if="selectedSeatIndex === index" type="primary" class="dialog-book-btn" @click="goToCreateOrder(train, seat)">Book</el-button>
@@ -183,13 +148,15 @@
       </template>
     </div>
   </div>
+</div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { format } from "date-fns";
 import { useBookingStore } from "@/stores/bookingProcess";
-import { Switch, Location, Close } from "@element-plus/icons-vue";
+import { updateOrderTrainSeat } from "@/api/modules/orders";
+import { Switch, Location, Close, Edit } from "@element-plus/icons-vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage, ElLoading } from "element-plus";
 import { getOrderTimetable } from "@/api/modules/orders";
@@ -197,7 +164,8 @@ import { getExchangeRate } from "@/api/modules/exchange";
 import { useCityStore } from "@/stores/city";
 import { useCurrencyStore } from "@/stores/currencyStore";
 import { storeToRefs } from "pinia";
-
+import SearchCard from "./SearchCard.vue";
+import { pinyin } from "pinyin-pro";
 const route = useRoute();
 const router = useRouter();
 const cityStore = useCityStore();
@@ -211,19 +179,10 @@ const bookingStore = useBookingStore();
 // 转换城市数据格式
 const cities = computed(() =>
   allCities.value.map((station) => ({
-    value: station.pingYin,
-    name: station.pingYin,
+    pingYin: station.pingYin,
+    name: station.name,
     stationCode: station.stationCode,
-    label: `${station.name} - ${station.pingYin}`,
-  }))
-);
-
-const localHotCities = computed(() =>
-  hotCities.value.map((station) => ({
-    value: station.pingYin,
-    name: station.pingYin,
-    stationCode: station.stationCode,
-    label: `${station.name} - ${station.pingYin}`,
+    label: `${station.pingYin} - ${station.name}`,
   }))
 );
 
@@ -231,19 +190,88 @@ const from = ref("");
 const to = ref("");
 const fromStation = ref(null);
 const toStation = ref(null);
+
 const date = ref("");
-const trainType = ref("");
-const departTime = ref("");
-const departStation = ref("");
 const trains = ref([]);
 const loading = ref(false);
-const searchQuery = ref("");
 const exchangeRates = ref({});
-const dialogVisible = ref(false);
 const selectedTrain = ref(null);
 const selectedSeatIndex = ref(0);
 const currentImageIndex = ref(0);
+const showSearchCard = ref(false);
 
+onMounted(() => {
+  initialize();
+
+  bookingStore.setActiveStep(1);
+
+  // 保存搜索参数到store
+  bookingStore.setSearchParams({
+    from: from.value,
+    to: to.value,
+    date: date.value,
+  });
+});
+
+// Watch for route query changes
+watch(
+  () => route.query,
+  (newQuery) => {
+    const shouldSearch = Object.keys(newQuery).length > 0;
+
+    if (newQuery.from) {
+      const station = cities.value.find((c) => c.stationCode === newQuery.from);
+      if (station) {
+        fromStation.value = station;
+        from.value = station.value;
+      }
+    }
+
+    if (newQuery.to) {
+      const station = cities.value.find((c) => c.stationCode === newQuery.to);
+      if (station) {
+        toStation.value = station;
+        to.value = station.value;
+      }
+    }
+
+    if (newQuery.date) {
+      try {
+        // 将日期字符串解析为 YYYY-MM-DD 格式
+        const parsedDate = new Date(newQuery.date);
+        if (!isNaN(parsedDate.getTime())) {
+          date.value = parsedDate.toISOString().split("T")[0];
+        } else {
+          date.value = new Date().toISOString().split("T")[0];
+        }
+      } catch {
+        date.value = new Date().toISOString().split("T")[0];
+      }
+    }
+
+    if (shouldSearch && fromStation.value && toStation.value && date.value) {
+      searchTrains();
+    }
+  },
+  { immediate: true }
+);
+// duration: 06:34
+const formatDuration = (duration) => {
+  const [hours, minutes] = duration.split(":").map(Number);
+  return `${hours}h ${minutes}m`;
+};
+// station: VNP - stationCode
+const formatStation = (station) => {
+  const stationObj = cities.value.find((s) => s.stationCode == station);
+  if (stationObj) {
+    const words = pinyin(stationObj.name, { toneType: "none", type: "array" });
+    return words
+      .flat()
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join("");
+  }
+  return "";
+};
 // Mapping of seat types to image paths
 const seatImageMap = {
   "Business Class": ["/src/assets/seats/CHR_business_01.png", "/src/assets/seats/CHR_business_02.png"],
@@ -409,7 +437,10 @@ const processTrainData = (trainsData) => {
     if (train.swzPrice) {
       seats.push({
         type: "Business Class",
-        price: train.swzPrice,
+        seatPriceRaw: train.swzPrice,
+        seatPrice: Math.round(train.swzPrice * 1.1),
+        seatFee: Math.round(train.swzPrice * 0.08),
+        seatPriceTotal: Math.round(train.swzPrice * 1.1 + train.swzPrice * 0.08),
         status: train.swzNum === "有" ? "Available" : train.swzNum === "0" ? "Sold out" : `${train.swzNum} left`,
         amenities: ["wifi", "power", "tv", "meal"],
       });
@@ -417,7 +448,10 @@ const processTrainData = (trainsData) => {
     if (train.ydzPrice) {
       seats.push({
         type: "First Class",
-        price: train.ydzPrice,
+        seatPriceRaw: train.ydzPrice,
+        seatPrice: Math.round(train.ydzPrice * 1.1),
+        seatFee: Math.round(train.ydzPrice * 0.08),
+        seatPriceTotal: Math.round(train.ydzPrice * 1.1 + train.ydzPrice * 0.08),
         status: train.ydzNum === "有" ? "Available" : train.ydzNum === "0" ? "Sold out" : `${train.ydzNum} left`,
         amenities: ["wifi", "power"],
       });
@@ -425,87 +459,32 @@ const processTrainData = (trainsData) => {
     if (train.edzPrice) {
       seats.push({
         type: "Second Class",
-        price: train.edzPrice,
+        seatPriceRaw: train.edzPrice,
+        seatPrice: Math.round(train.edzPrice * 1.1),
+        seatFee: Math.round(train.edzPrice * 0.08),
+        seatPriceTotal: Math.round(train.edzPrice * 1.1 + train.edzPrice * 0.08),
         status: train.edzNum === "有" ? "Available" : train.edzNum === "0" ? "Sold out" : `${train.edzNum} left`,
         amenities: ["wifi", "power"],
       });
     }
-
-    // 查找出发和到达站的拼音名称
-    const fromStationObj = cities.value.find((c) => c.stationCode === train.fromStation);
-    const toStationObj = cities.value.find((c) => c.stationCode === train.toStation);
-
     return {
       id: train.trainNo,
       number: train.trainCode,
       type: train.trainType === "G" ? "High-speed G" : train.trainType === "D" ? "High-speed D" : "Normal K",
       departTime: train.fromTime,
-      departStation: fromStationObj ? fromStationObj.label : train.fromStation,
+      departStation: train.fromStation,
       duration: train.runTime,
       arrivalTime: train.toTime,
-      arrivalStation: toStationObj ? toStationObj.label : train.toStation,
+      arrivalStation: train.toStation,
       expanded: false,
       canBook: train.canBook,
       seats: seats,
-      minPrice: seats.length > 0 ? Math.min(...seats.map((s) => s.price)) : null,
+      minPrice: seats.length > 0 ? Math.min(...seats.map((s) => s.seatPriceTotal)) : null,
     };
   });
-
-  // 应用筛选条件
-  applyFilters();
 };
 
-// 应用筛选条件的函数
-const applyFilters = () => {
-  if (!trains.value.length) return;
-
-  let filteredTrains = [...trains.value];
-
-  // 筛选列车类型
-  if (trainType.value) {
-    filteredTrains = filteredTrains.filter((train) => train.number.startsWith(trainType.value));
-  }
-
-  // 筛选发车时间
-  if (departTime.value) {
-    filteredTrains = filteredTrains.filter((train) => {
-      const hour = parseInt(train.departTime.split(":")[0]);
-      switch (departTime.value) {
-        case "morning":
-          return hour >= 6 && hour < 12;
-        case "afternoon":
-          return hour >= 12 && hour < 18;
-        case "evening":
-          return hour >= 18 || hour < 6;
-        default:
-          return true;
-      }
-    });
-  }
-
-  // 筛选发车站
-  if (departStation.value) {
-    filteredTrains = filteredTrains.filter((train) => {
-      return train.departStation.toLowerCase().includes(departStation.value.toLowerCase());
-    });
-  }
-
-  trains.value = filteredTrains;
-};
-
-onMounted(() => {
-  initialize();
-
-  bookingStore.setActiveStep(1);
-
-  // 保存搜索参数到store
-  bookingStore.setSearchParams({
-    from: from.value,
-    to: to.value,
-    date: date.value,
-  });
-});
-
+// 搜索列车
 const searchTrains = async () => {
   if (!fromStation.value || !toStation.value || !date.value) {
     ElMessage.warning("Please fill in all search fields");
@@ -552,50 +531,21 @@ const searchTrains = async () => {
         });
       }
 
-      // 查找出发和到达站的拼音名称
-      const fromStationObj = cities.value.find((c) => c.stationCode === train.fromStation);
-      const toStationObj = cities.value.find((c) => c.stationCode === train.toStation);
-
       return {
         id: train.trainNo,
         number: train.trainCode,
         type: train.trainType === "G" ? "High-speed G" : train.trainType === "D" ? "High-speed D" : "Normal K",
         departTime: train.fromTime,
-        departStation: fromStationObj ? fromStationObj.label : train.fromStation,
+        departStation: train.fromStation,
         duration: train.runTime,
         arrivalTime: train.toTime,
-        arrivalStation: toStationObj ? toStationObj.label : train.toStation,
+        arrivalStation: train.toStation,
         expanded: false,
         canBook: train.canBook,
         seats: seats,
         minPrice: seats.length > 0 ? Math.min(...seats.map((s) => s.price)) : null,
       };
     });
-
-    // 应用筛选条件
-    if (trainType.value) {
-      trains.value = trains.value.filter((train) => train.number.startsWith(trainType.value));
-    }
-
-    if (departTime.value) {
-      trains.value = trains.value.filter((train) => {
-        const hour = parseInt(train.departTime.split(":")[0]);
-        switch (departTime.value) {
-          case "morning":
-            return hour >= 6 && hour < 12;
-          case "afternoon":
-            return hour >= 12 && hour < 18;
-          case "evening":
-            return hour >= 18 || hour < 6;
-          default:
-            return true;
-        }
-      });
-    }
-
-    if (departStation.value) {
-      trains.value = trains.value.filter((train) => train.departStation.toLowerCase().includes(departStation.value.toLowerCase()));
-    }
   } catch (error) {
     console.error("Error fetching trains:", error);
     ElMessage.error("Failed to fetch train schedules. Please try again.");
@@ -604,34 +554,7 @@ const searchTrains = async () => {
   }
 };
 
-// 添加对筛选条件的监听
-watch([trainType, departTime, departStation], () => {
-  if (trains.value.length > 0) {
-    searchTrains();
-  }
-});
-
-const handleSelect = (item) => {
-  const activeElement = document.activeElement;
-  if (activeElement.id === "from-search") {
-    fromStation.value = item;
-    from.value = item.pingYin;
-  } else if (activeElement.id === "to-search") {
-    toStation.value = item;
-    to.value = item.pingYin;
-  }
-};
-
-const swapLocations = () => {
-  const tempValue = from.value;
-  from.value = to.value;
-  to.value = tempValue;
-
-  const tempStation = { ...fromStation.value };
-  fromStation.value = { ...toStation.value };
-  toStation.value = tempStation;
-};
-
+// 展开列车详情
 const expandDetails = (train, event) => {
   // If the event is from a click on the close button, don't toggle
   if (event && event.target.closest(".custom-close-button")) {
@@ -656,11 +579,13 @@ const expandDetails = (train, event) => {
   }
 };
 
+// 选择座位
 const selectSeat = (index) => {
   selectedSeatIndex.value = index;
   currentImageIndex.value = 0; // Reset image index when changing seat type
 };
 
+// 下一张座位图片
 const nextSeatImage = () => {
   if (!selectedTrain.value || !selectedTrain.value.seats) return;
 
@@ -671,6 +596,7 @@ const nextSeatImage = () => {
   }
 };
 
+// 上一张座位图片
 const prevSeatImage = () => {
   if (!selectedTrain.value || !selectedTrain.value.seats) return;
 
@@ -679,199 +605,6 @@ const prevSeatImage = () => {
   if (images.length > 1) {
     currentImageIndex.value = (currentImageIndex.value - 1 + images.length) % images.length;
   }
-};
-
-const highlightMatch = (text, query) => {
-  if (!query) return text;
-
-  // 转换为小写进行匹配
-  const lowerText = text.toLowerCase();
-  const lowerQuery = query.toLowerCase();
-
-  // 如果没有匹配到，直接返回原文本
-  const index = lowerText.indexOf(lowerQuery);
-  if (index === -1) return text;
-
-  // 保持原文本的大小写，只添加高亮样式
-  const before = text.slice(0, index);
-  const match = text.slice(index, index + query.length);
-  const after = text.slice(index + query.length);
-  return before + `<span class="highlight">${match}</span>` + after;
-};
-
-// 计算城市与搜索字符串的匹配度分数
-const calculateMatchScore = (city, searchStr) => {
-  let score = 0;
-
-  // 如果城市名称以搜索字符串开头，给予更高分数
-  if (city.name.toLowerCase().startsWith(searchStr)) {
-    score += 100;
-  } else if (city.name.toLowerCase().includes(searchStr)) {
-    score += 50;
-  }
-
-  // 如果拼音以搜索字符串开头，给予更高分数
-  if (city.value.toLowerCase().startsWith(searchStr)) {
-    score += 80;
-  } else if (city.value.toLowerCase().includes(searchStr)) {
-    score += 40;
-  }
-
-  // 如果拼音简写匹配，给予一定分数
-  if (city.pingYinShort && city.pingYinShort.toLowerCase().includes(searchStr)) {
-    score += 30;
-  }
-
-  // 名称越短，分数越高（但权重较低）
-  score += Math.max(0, 10 - city.name.length);
-
-  return score;
-};
-
-const querySearch = (queryString, cb) => {
-  searchQuery.value = queryString;
-  if (!queryString) {
-    const suggestions = [];
-
-    // Add hot cities section
-    if (localHotCities.value.length > 0) {
-      suggestions.push({
-        label: "Hot Cities",
-        cities: localHotCities.value.map((city) => ({
-          ...city,
-          pingYin: city.value.charAt(0).toUpperCase() + city.value.slice(1).toLowerCase(),
-          displayPinyin: city.value.charAt(0).toUpperCase() + city.value.slice(1).toLowerCase(),
-        })),
-      });
-    }
-
-    // Group other cities by pinyin first letter
-    const groupedCities = {};
-    cities.value.forEach((city) => {
-      const firstLetter = city.value[0].toUpperCase();
-      if (!groupedCities[firstLetter]) {
-        groupedCities[firstLetter] = [];
-      }
-      const formattedPinyin = city.value.charAt(0).toUpperCase() + city.value.slice(1).toLowerCase();
-      groupedCities[firstLetter].push({
-        ...city,
-        pingYin: formattedPinyin,
-        displayPinyin: formattedPinyin,
-      });
-    });
-
-    // Add grouped cities
-    Object.entries(groupedCities)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .forEach(([letter, cities]) => {
-        suggestions.push({
-          label: letter,
-          cities: cities,
-        });
-      });
-
-    cb(suggestions);
-  } else {
-    const searchStr = queryString.toLowerCase();
-    const results = cities.value
-      .filter((city) => {
-        return city.name.toLowerCase().includes(searchStr) || city.value.toLowerCase().includes(searchStr) || (city.pingYinShort && city.pingYinShort.toLowerCase().includes(searchStr));
-      })
-      .map((city) => {
-        const formattedPinyin = city.value.charAt(0).toUpperCase() + city.value.slice(1).toLowerCase();
-        return {
-          ...city,
-          pingYin: formattedPinyin,
-          displayPinyin: highlightMatch(formattedPinyin, queryString),
-          // 计算匹配度分数：精确匹配得分高，名称长度短的得分高
-          matchScore: calculateMatchScore(city, searchStr),
-        };
-      })
-      .sort((a, b) => {
-        // 首先按照匹配度分数排序（降序）
-        if (b.matchScore !== a.matchScore) {
-          return b.matchScore - a.matchScore;
-        }
-        // 其次按照名称长度排序（升序，短名称优先）
-        if (a.name.length !== b.name.length) {
-          return a.name.length - b.name.length;
-        }
-        // 最后按照字典序排序
-        return a.value.localeCompare(b.value);
-      });
-
-    cb([{ label: "Search Results", cities: results }]);
-  }
-};
-
-// Watch for route query changes
-watch(
-  () => route.query,
-  (newQuery) => {
-    const shouldSearch = Object.keys(newQuery).length > 0;
-
-    if (newQuery.from) {
-      const station = cities.value.find((c) => c.stationCode === newQuery.from);
-      if (station) {
-        fromStation.value = station;
-        from.value = station.value;
-      }
-    }
-
-    if (newQuery.to) {
-      const station = cities.value.find((c) => c.stationCode === newQuery.to);
-      if (station) {
-        toStation.value = station;
-        to.value = station.value;
-      }
-    }
-
-    if (newQuery.date) {
-      try {
-        // 将日期字符串解析为 YYYY-MM-DD 格式
-        const parsedDate = new Date(newQuery.date);
-        if (!isNaN(parsedDate.getTime())) {
-          date.value = parsedDate.toISOString().split("T")[0];
-        } else {
-          date.value = new Date().toISOString().split("T")[0];
-        }
-      } catch {
-        date.value = new Date().toISOString().split("T")[0];
-      }
-    }
-
-    if (shouldSearch && fromStation.value && toStation.value && date.value) {
-      searchTrains();
-    }
-  },
-  { immediate: true }
-);
-
-const dateShortcuts = [
-  {
-    text: "Today",
-    value: new Date(),
-  },
-  {
-    text: "Tomorrow",
-    value: () => {
-      const date = new Date();
-      date.setTime(date.getTime() + 3600 * 1000 * 24);
-      return date;
-    },
-  },
-  {
-    text: "A week later",
-    value: () => {
-      const date = new Date();
-      date.setTime(date.getTime() + 3600 * 1000 * 24 * 7);
-      return date;
-    },
-  },
-];
-
-const disabledDate = (time) => {
-  return time.getTime() < Date.now() - 8.64e7 || time.getTime() > Date.now() + 8.64e7 * 30; // 禁用今天之前和30天后的日期
 };
 
 // 转换价格从人民币到当前选择的货币
@@ -890,7 +623,7 @@ const formatDate = (dateString) => {
   if (!dateString) return "";
   try {
     const date = new Date(dateString);
-    return format(date, "dd MMMM");
+    return format(date, "MMM dd, yyyy");
   } catch (e) {
     console.error("Error formatting date:", e);
     return dateString;
@@ -907,18 +640,24 @@ const goToCreateOrder = async (train, seat) => {
   });
 
   try {
-    // 存入车票信息到store
-    bookingStore.setTicketInfo({
+    const trainSeatData = {
+      orderId: bookingStore.orderId,
+      step: 2,
       trainNo: train.number,
       from: train.departStation,
       to: train.arrivalStation,
       date: date.value,
-      seatType: seat.type,
-      price: seat.price,
       departTime: train.departTime,
       arriveTime: train.arrivalTime,
-      duration: train.duration,
-    });
+      seatType: seat.type,
+      seatPriceRaw: seat.seatPriceRaw,
+      seatPrice: seat.seatPrice,
+      seatFee: seat.seatFee,
+      seatPriceTotal: seat.seatPriceTotal
+    };
+    console.log("trainSeatData", trainSeatData);
+    // 更新订单的车次和座位选择
+    await updateOrderTrainSeat(bookingStore.orderId, trainSeatData);
 
     // 更新激活步骤为"乘客信息"
     bookingStore.setActiveStep(2);
@@ -936,143 +675,105 @@ const goToCreateOrder = async (train, seat) => {
     loading.close();
   }
 };
+
+const handleSearchCardSubmit = (searchParams) => {
+  fromStation.value = searchParams.from;
+  toStation.value = searchParams.to;
+  date.value = searchParams.date;
+  showSearchCard.value = false;
+  searchTrains();
+};
 </script>
 
 <style scoped>
+.container {
+  width: 70%;
+  margin: 0 auto;
+}
+.horizontal-separator {
+  height: 10px;
+  background-color: #e2e2e2;
+}
+
 .search-results {
   padding: 24px;
-  background: #f5f5f5;
   min-height: 100vh;
-  width: 70%;
   min-width: 800px;
-  margin: 0 auto;
   position: relative;
 }
 
-.search-header {
-  background: white;
-  padding: 20px;
-  border-radius: 4px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 24px;
-}
-
-.search-params {
+.search-params-display {
   display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-weight: 700;
+  padding: 12px 20px;
   gap: 12px;
-  align-items: flex-end;
-  margin-bottom: 16px;
-  max-width: 1200px;
-  margin-left: 0;
-  width: 100%;
-}
-
-.param {
-  flex: 1;
-  position: relative;
-  min-width: 20px;
-  max-width: calc(33.33% - 8px);
-  width: calc(33.33% - 8px);
-
-  :deep(.el-autocomplete) {
-    display: block;
-    width: 100%;
-  }
-
-  :deep(.el-input) {
-    width: 100%;
-  }
-
-  :deep(.el-input__wrapper) {
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  :deep(.el-autocomplete-suggestion) {
-    width: 100% !important;
-    min-width: unset !important;
-    box-sizing: border-box;
-  }
-
-  :deep(.el-popper) {
-    width: 100% !important;
-    min-width: unset !important;
-  }
-}
-
-.exchange-button {
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: 8px;
-  flex: 0 0 auto;
-  margin: 0 -6px;
-}
-
-.search-btn {
-  height: 40px;
-  padding: 0 20px;
-  font-weight: normal;
-  border-radius: 4px;
-  flex: 0 0 auto;
-  margin-left: auto;
-}
-
-:deep(.city-autocomplete) {
-  width: 100% !important;
-  min-width: unset !important;
-
-  .el-autocomplete-suggestion__wrap {
-    padding: 0;
-    max-height: 300px;
-  }
-
-  .el-scrollbar__view {
-    padding: 0;
-  }
-
-  .suggestion-list {
-    max-height: 200px;
-    overflow-y: auto;
-  }
-}
-
-.full-width {
-  width: 100%;
-}
-
-.suggestion-group {
-  padding: 8px 0;
-}
-
-.suggestion-group-label {
-  padding: 0 12px;
-  font-size: 13px;
-  color: #909399;
-  margin-bottom: 8px;
-}
-
-.suggestion-list {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.suggestion-item {
-  padding: 8px 12px;
   cursor: pointer;
-  font-size: 14px;
-  color: #606266;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  transition: all 0.3s ease;
+  margin-bottom: 16px;
 }
 
-.suggestion-item:hover {
-  background-color: #f5f7fa;
+.search-params-display:hover {
+  background-color: var(--el-color-primary-light-8, #e6f1fc);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-:deep(.highlight) {
-  font-weight: bold !important;
-  text-decoration: underline !important;
+.route-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.city {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--el-text-color-primary, #303133);
+}
+
+.direction-icon {
+  font-size: 20px;
+  color: var(--el-text-color-secondary, #909399);
+}
+
+.date-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--el-text-color-primary, #303133);
+}
+
+.edit-icon {
+  font-size: 16px;
+  color: var(--el-text-color-secondary, #909399);
+  cursor: pointer;
+}
+
+.search-card-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.search-card-container {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  min-width: 800px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .filters {
@@ -1349,6 +1050,7 @@ const goToCreateOrder = async (train, seat) => {
   border-color: #f56c6c;
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
+  transform: translateY(-2px);
 }
 
 .cancel-btn:hover {
