@@ -11,7 +11,6 @@ export const useBookingStore = defineStore('booking', {
     activeStep: 0,
     searchParams: null,
     orderId: null,
-    ticketInfo: null
   }),
   actions: {
     setActiveStep(index) {
@@ -24,11 +23,5 @@ export const useBookingStore = defineStore('booking', {
     setOrderId(id) {
       this.orderId = id
     },
-    setTicketInfo(info) {
-      this.ticketInfo = info
-    },
-    getTicketInfo() {
-      return this.ticketInfo
-    }
   }
 })

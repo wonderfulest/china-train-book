@@ -75,7 +75,7 @@
                     <td>{{ passenger.passportName }}</td>
                     <td>{{ passenger.passportNumber }}</td>
                     <td>{{ passenger.country }}</td>
-                    <td class="text-right">{{ formatPrice(passenger.priceTotal) }}</td>
+                    <td class="text-right">{{ formatPrice(passenger.passengerPriceTotal) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -284,7 +284,7 @@ const formatPrice = (price) => {
     }
   }
   
-  return `${currencyStore.currencySymbol}${convertedPrice}`
+  return `${currencyStore.currencySymbol} ${convertedPrice}`
 }
 
 // 获取乘客类型文本

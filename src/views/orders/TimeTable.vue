@@ -50,7 +50,7 @@
             <!-- Departure information -->
             <div class="col departure-section">
               <div class="time-large">{{ train.departTime }}</div>
-              <div class="station">{{ formatStation(train.departStation) }}</div>
+              <div class="station">{{ formatStation(train.departStation, allCities) }}</div>
             </div>
 
             <!-- Connection line with distance -->
@@ -65,7 +65,7 @@
             <!-- Arrival information -->
             <div class="col arrival-section">
               <div class="time-large">{{ train.arrivalTime }}</div>
-              <div class="station">{{ formatStation(train.arrivalStation) }}</div>
+              <div class="station">{{ formatStation(train.arrivalStation, allCities) }}</div>
             </div>
 
             <!-- Train type info -->
@@ -77,7 +77,7 @@
             <!-- Price section as separate column -->
             <div class="price-section-column">
               <div class="from-price">
-                from <span class="price-value">{{ currencySymbol }}{{ convertPrice(train.minPrice) || "--" }}</span>
+                from <span class="price-value">{{ currencySymbol }}{{ currencyStore.convertPrice(train.minPrice) || "--" }}</span>
               </div>
               <div class="train-date">{{ formatDate(date) }}</div>
             </div>
@@ -116,7 +116,6 @@
                 <div class="dialog-seat-options">
 
                   <div v-for="(seat, index) in train.seats" :key="seat.type" class="dialog-seat-option" :class="{ selected: selectedSeatIndex === index }" @click="selectSeat(index)">
-                    <div> {{ seat }}</div>
                     <div class="dialog-seat-info">
                       <div class="dialog-seat-type">{{ seat.type }}</div>
                       <div class="dialog-seat-amenities">
@@ -127,7 +126,7 @@
                     <div class="dialog-seat-price-section" :class="{ 'selected-price-section': selectedSeatIndex === index }">
                       <div class="dialog-price">
                         <div class="dialog-price-currency">{{ currencySymbol }}</div>
-                        <div class="dialog-price-amount"> {{ convertPrice(seat.seatPriceTotal) }}</div>
+                        <div class="dialog-price-amount"> {{ currencyStore.convertPrice(seat.seatPriceTotal) }}</div>
                       </div>
                       <div class="dialog-per-seat">Per seat</div>
                       <el-button v-if="selectedSeatIndex === index" type="primary" class="dialog-book-btn" @click="goToCreateOrder(train, seat)">Book</el-button>
@@ -139,7 +138,7 @@
 
             <div class="dialog-footer">
               <div class="dialog-total">
-                Total amount for 1 passenger: <span class="dialog-total-price">{{ currencySymbol }}{{ selectedSeatIndex >= 0 && train.seats ? convertPrice(train.seats[selectedSeatIndex].price) : convertPrice(train.minPrice) }}</span>
+                Total amount for 1 passenger: <span class="dialog-total-price">{{ currencySymbol }}{{ selectedSeatIndex >= 0 && train.seats ? currencyStore.convertPrice(train.seats[selectedSeatIndex].price) : currencyStore.convertPrice(train.minPrice) }}</span>
               </div>
               <el-button type="primary" class="dialog-continue-btn" @click="goToCreateOrder(train, selectedSeatIndex >= 0 && train.seats ? train.seats[selectedSeatIndex] : train.seats[0])"> Continue <i class="el-icon-arrow-right"></i> </el-button>
             </div>
@@ -153,6 +152,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
+import { formatDuration, formatStation } from "@/utils/formatters";
 import { format } from "date-fns";
 import { useBookingStore } from "@/stores/bookingProcess";
 import { updateOrderTrainSeat } from "@/api/modules/orders";
@@ -165,26 +165,15 @@ import { useCityStore } from "@/stores/city";
 import { useCurrencyStore } from "@/stores/currencyStore";
 import { storeToRefs } from "pinia";
 import SearchCard from "./SearchCard.vue";
-import { pinyin } from "pinyin-pro";
 const route = useRoute();
 const router = useRouter();
 const cityStore = useCityStore();
 const currencyStore = useCurrencyStore();
-const { allCities, hotCities } = storeToRefs(cityStore);
+const { allCities } = storeToRefs(cityStore);
 const { currency, currencySymbol } = storeToRefs(currencyStore);
 
 // 设置当前步骤为Timetable阶段（索引为1）
 const bookingStore = useBookingStore();
-
-// 转换城市数据格式
-const cities = computed(() =>
-  allCities.value.map((station) => ({
-    pingYin: station.pingYin,
-    name: station.name,
-    stationCode: station.stationCode,
-    label: `${station.pingYin} - ${station.name}`,
-  }))
-);
 
 const from = ref("");
 const to = ref("");
@@ -194,14 +183,14 @@ const toStation = ref(null);
 const date = ref("");
 const trains = ref([]);
 const loading = ref(false);
-const exchangeRates = ref({});
+
 const selectedTrain = ref(null);
 const selectedSeatIndex = ref(0);
 const currentImageIndex = ref(0);
 const showSearchCard = ref(false);
 
-onMounted(() => {
-  initialize();
+onMounted(async() => {
+  await initialize();
 
   bookingStore.setActiveStep(1);
 
@@ -220,7 +209,7 @@ watch(
     const shouldSearch = Object.keys(newQuery).length > 0;
 
     if (newQuery.from) {
-      const station = cities.value.find((c) => c.stationCode === newQuery.from);
+      const station = allCities.value.find((c) => c.stationCode === newQuery.from);
       if (station) {
         fromStation.value = station;
         from.value = station.value;
@@ -228,7 +217,7 @@ watch(
     }
 
     if (newQuery.to) {
-      const station = cities.value.find((c) => c.stationCode === newQuery.to);
+      const station = allCities.value.find((c) => c.stationCode === newQuery.to);
       if (station) {
         toStation.value = station;
         to.value = station.value;
@@ -255,23 +244,7 @@ watch(
   },
   { immediate: true }
 );
-// duration: 06:34
-const formatDuration = (duration) => {
-  const [hours, minutes] = duration.split(":").map(Number);
-  return `${hours}h ${minutes}m`;
-};
-// station: VNP - stationCode
-const formatStation = (station) => {
-  const stationObj = cities.value.find((s) => s.stationCode == station);
-  if (stationObj) {
-    const words = pinyin(stationObj.name, { toneType: "none", type: "array" });
-    return words
-      .flat()
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join("");
-  }
-  return "";
-};
+
 // Mapping of seat types to image paths
 const seatImageMap = {
   "Business Class": ["/src/assets/seats/CHR_business_01.png", "/src/assets/seats/CHR_business_02.png"],
@@ -290,45 +263,11 @@ const selectedSeatImage = computed(() => {
   return images[currentImageIndex.value % images.length];
 });
 
-// 获取汇率
-const fetchExchangeRate = async () => {
-  try {
-    // 模拟汇率数据 - 实际应用中应该调用API
-    // 支持的货币: USD, CNY, EUR, SGD, JPY
-    const mockRates = {
-      USD: 0.1381,
-      CNY: 1.0,
-      EUR: 0.1276,
-      SGD: 0.1865,
-      JPY: 20.85,
-    };
-
-    // 设置所有汇率
-    exchangeRates.value = mockRates;
-
-    // 实际API调用示例：
-    // 对于每种支持的货币，获取从CNY到该货币的汇率
-    // const currencies = ['USD', 'EUR', 'SGD', 'JPY'];
-    // for (const curr of currencies) {
-    //   if (curr !== 'CNY') { // CNY到CNY汇率为1
-    //     const response = await getExchangeRate('CNY', curr);
-    //     if (response.code === "0" && response.data?.exchangeRate) {
-    //       const rate = parseFloat(response.data.exchangeRate.exchangeRate);
-    //       exchangeRates.value[curr] = rate * (1 - 0.005); // 加上千分之五的汇差
-    //     }
-    //   }
-    // }
-    // exchangeRates.value['CNY'] = 1.0; // CNY到CNY汇率为1
-  } catch (error) {
-    console.error("Failed to fetch exchange rates:", error);
-    ElMessage.error("无法加载汇率数据");
-  }
-};
-
 const initialize = async () => {
   loading.value = true;
   try {
-    await Promise.all([fetchExchangeRate(), cityStore.initializeCityData()]);
+
+    await Promise.all([currencyStore.initialize(), cityStore.initializeCityData()]);
 
     // 检查路由中是否有订单ID参数
     const orderId = route.params.orderId;
@@ -346,7 +285,7 @@ const initialize = async () => {
 
           // 设置搜索参数
           if (fromStationCode) {
-            const station = cities.value.find((c) => c.stationCode === fromStationCode);
+            const station = allCities.value.find((c) => c.stationCode === fromStationCode);
             if (station) {
               fromStation.value = station;
               from.value = station.value;
@@ -354,7 +293,7 @@ const initialize = async () => {
           }
 
           if (toStationCode) {
-            const station = cities.value.find((c) => c.stationCode === toStationCode);
+            const station = allCities.value.find((c) => c.stationCode === toStationCode);
             if (station) {
               toStation.value = station;
               to.value = station.value;
@@ -379,7 +318,7 @@ const initialize = async () => {
       const { from: fromCode, to: toCode, date: dateStr } = route.query;
 
       if (fromCode) {
-        const station = cities.value.find((c) => c.stationCode === fromCode);
+        const station = allCities.value.find((c) => c.stationCode === fromCode);
         if (station) {
           fromStation.value = station;
           from.value = station.value;
@@ -387,7 +326,7 @@ const initialize = async () => {
       }
 
       if (toCode) {
-        const station = cities.value.find((c) => c.stationCode === toCode);
+        const station = allCities.value.find((c) => c.stationCode === toCode);
         if (station) {
           toStation.value = station;
           to.value = station.value;
@@ -423,6 +362,17 @@ const initialize = async () => {
   }
 };
 
+// 计算服务费
+const getSeatFee = (price) => {
+  if (price < 60) return 60;
+  if (price < 200) return 80;
+  if (price < 500) return 120;
+  if (price < 1000) return 150;
+  if (price < 2000) return 250;
+  if (price < 3000) return 300;
+  return 500;
+};
+
 // 处理列车数据的函数
 const processTrainData = (trainsData) => {
   if (!trainsData || !Array.isArray(trainsData) || trainsData.length === 0) {
@@ -435,12 +385,13 @@ const processTrainData = (trainsData) => {
     // 处理座位信息
     const seats = [];
     if (train.swzPrice) {
+
       seats.push({
         type: "Business Class",
         seatPriceRaw: train.swzPrice,
         seatPrice: Math.round(train.swzPrice * 1.1),
-        seatFee: Math.round(train.swzPrice * 0.08),
-        seatPriceTotal: Math.round(train.swzPrice * 1.1 + train.swzPrice * 0.08),
+        seatFee: getSeatFee(train.swzPrice),
+        seatPriceTotal: Math.round(train.swzPrice * 1.1 + getSeatFee(train.swzPrice)),
         status: train.swzNum === "有" ? "Available" : train.swzNum === "0" ? "Sold out" : `${train.swzNum} left`,
         amenities: ["wifi", "power", "tv", "meal"],
       });
@@ -450,8 +401,8 @@ const processTrainData = (trainsData) => {
         type: "First Class",
         seatPriceRaw: train.ydzPrice,
         seatPrice: Math.round(train.ydzPrice * 1.1),
-        seatFee: Math.round(train.ydzPrice * 0.08),
-        seatPriceTotal: Math.round(train.ydzPrice * 1.1 + train.ydzPrice * 0.08),
+        seatFee: getSeatFee(train.ydzPrice),
+        seatPriceTotal: Math.round(train.ydzPrice * 1.1 + getSeatFee(train.ydzPrice)),
         status: train.ydzNum === "有" ? "Available" : train.ydzNum === "0" ? "Sold out" : `${train.ydzNum} left`,
         amenities: ["wifi", "power"],
       });
@@ -461,8 +412,8 @@ const processTrainData = (trainsData) => {
         type: "Second Class",
         seatPriceRaw: train.edzPrice,
         seatPrice: Math.round(train.edzPrice * 1.1),
-        seatFee: Math.round(train.edzPrice * 0.08),
-        seatPriceTotal: Math.round(train.edzPrice * 1.1 + train.edzPrice * 0.08),
+        seatFee: getSeatFee(train.edzPrice),
+        seatPriceTotal: Math.round(train.edzPrice * 1.1 + getSeatFee(train.edzPrice)),
         status: train.edzNum === "有" ? "Available" : train.edzNum === "0" ? "Sold out" : `${train.edzNum} left`,
         amenities: ["wifi", "power"],
       });
@@ -605,17 +556,6 @@ const prevSeatImage = () => {
   if (images.length > 1) {
     currentImageIndex.value = (currentImageIndex.value - 1 + images.length) % images.length;
   }
-};
-
-// 转换价格从人民币到当前选择的货币
-const convertPrice = (cnyPrice) => {
-  if (!exchangeRates.value || !cnyPrice) return 0;
-  const targetCurrency = currency.value;
-  const rate = exchangeRates.value[targetCurrency];
-  if (!rate) return 0;
-
-  const convertedPrice = parseFloat(cnyPrice) * rate;
-  return Math.ceil(convertedPrice); // 向上取整到整数
 };
 
 // 格式化日期，例如 '20 March'

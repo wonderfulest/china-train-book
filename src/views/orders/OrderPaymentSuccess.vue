@@ -286,7 +286,7 @@ function calculateDuration(departTime, arriveTime) {
 function formatUSDPrice(cnyPrice) {
   if (!cnyPrice) return '$0.00';
   const usdPrice = parseFloat(cnyPrice) * 0.14; // 使用固定汇率进行简单转换
-  return `$${usdPrice.toFixed(2)}`;
+  return `${currencyStore.currencySymbol} ${Math.round(usdPrice)}`;
 }
 
 // 格式化日期

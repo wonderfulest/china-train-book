@@ -290,7 +290,7 @@ const convertPriceToUSD = (cnyPrice) => {
 // 格式化美元价格（专用于PayPal显示）
 const formatUSDPrice = (cnyPrice) => {
   const usdPrice = convertPriceToUSD(cnyPrice);
-  return `$${usdPrice.toFixed(2)}`;
+  return `${currencyStore.currencySymbol} ${Math.round(usdPrice)}`;
 };
 
 // 格式化价格
@@ -413,7 +413,7 @@ function initPayPalButton() {
           amount: {
             // 固定使用USD货币
             currency_code: 'USD',
-            value: usdPrice.toFixed(2)
+            value: Math.round(usdPrice)
           },
           description: `Train Ticket Order ${orderId.value}`
         }]

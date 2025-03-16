@@ -6,29 +6,28 @@
         <!-- Journey Information Section -->
         <div class="journey-info-section">
           <div class="section-header" @click="toggleSection('journey')">
-            <h2>Order summary</h2>
+            <h2>Ticket Summary</h2>
             <i :class="[sections.journey ? 'el-icon-arrow-up' : 'el-icon-arrow-down']"></i>
           </div>
           <div class="journey-card" v-if="sections.journey">
             <div class="date-section">
-              <div class="date">{{ formatDate(ticketInfo.date) }}</div>
-              <div class="day">{{ formatDay(ticketInfo.date) }}, {{ ticketInfo.departTime }}</div>
+              <div class="date">{{ formatDate(orderInfo.date) }}</div>
+              <div class="day">{{ formatDay(orderInfo.date) }}, {{ orderInfo.departTime }}</div>
             </div>
             <div class="journey-details">
               <div class="station-info">
-                <div class="station-name">{{ ticketInfo.from }} - {{ ticketInfo.departTime }}</div>
-                <div class="station-details" v-if="stationDetails[ticketInfo.from]">{{ stationDetails[ticketInfo.from] }}</div>
+                <div class="station-name">{{ formatStation(orderInfo.from, allCities) }} - {{ orderInfo.departTime }}</div>
               </div>
               <div class="train-info">
-                <div class="train-number">Train #{{ ticketInfo.trainNo }} - {{ getTrainType(ticketInfo.trainNo) }} / Travel time {{ ticketInfo.duration }}</div>
+                <div class="train-number">Train #{{ orderInfo.trainNo }} - {{ getTrainType(orderInfo.trainNo) }} / Travel time {{ orderInfo.duration }}</div>
               </div>
               <div class="station-info">
-                <div class="station-name">{{ ticketInfo.to }}</div>
-                <div class="station-details" v-if="stationDetails[ticketInfo.to]">{{ stationDetails[ticketInfo.to] }}</div>
+                <div class="station-name">{{ formatStation(orderInfo.to, allCities) }} - {{ orderInfo.arriveTime }}</div>
               </div>
               <div class="seat-preferences">
-                <span>{{ ticketInfo.seatType }}</span>
-                <span class="price-tag">{{ formatPrice(ticketInfo.price) }}</span>
+                {{ orderInfo }} 
+                <span>{{ orderInfo.seatType }}</span>
+                <span class="price-tag">{{ formatPrice(orderInfo.seatPriceTotal) }}</span>
               </div>
             </div>
           </div>
@@ -39,8 +38,7 @@
           <div class="section-header" @click="toggleSection('passengers')">
             <h2>Passenger Information</h2>
             <div class="section-actions">
-              <el-button type="primary" size="small" icon="el-icon-plus" circle @click.stop="addPassenger" title="Add Passenger"></el-button>
-              <i :class="[sections.passengers ? 'el-icon-arrow-up' : 'el-icon-arrow-down']"></i>
+              <Icon icon="icon-park-solid:add-one" width="28" height="28" style="color: var(--el-button-primary-background)" @click.stop="addPassenger"/>
             </div>
           </div>
           <div v-if="sections.passengers">
@@ -51,8 +49,8 @@
                 </div>
                 <div class="passenger-title">乘客 {{ index + 1 }}</div>
                 <div class="passenger-actions">
-                  <el-button v-if="passengersList.length > 1" type="danger" size="small" icon="el-icon-delete" circle @click.stop="removePassenger(index)" style="margin-right: 10px"></el-button>
-                  <i :class="[passenger.isExpanded ? 'el-icon-arrow-up' : 'el-icon-arrow-down']"></i>
+                
+                  <Icon icon="material-symbols:delete-outline" width="24" height="24"  style="color: var(--el-button-primary-background)"  @click.stop="removePassenger(index)"  />
                 </div>
               </div>
 
@@ -62,8 +60,8 @@
                   <div class="quick-fill-radio-group">
                     <el-radio-group v-model="passenger.selectedHistoricalId" @change="(id) => selectHistoricalPassenger(id, index)">
                       <div class="quick-fill-radio-row" v-for="histPassenger in historicalPassengers" :key="histPassenger.id">
-                        <el-radio :label="histPassenger.id">{{ histPassenger.passport_name }}</el-radio>
-                        <el-button type="danger" size="mini" icon="el-icon-delete" circle @click.stop="deleteHistoricalPassenger(histPassenger.id)" :title="'Remove Saved Passenger'"></el-button>
+                        <el-radio :label="histPassenger.id">{{ histPassenger.passportName }}</el-radio>
+                        <Icon icon="ant-design:user-delete-outlined" width="24" height="24"  style="color: var(--el-button-primary-background)" @click.stop="deleteHistoricalPassenger(histPassenger.id)" />
                       </div>
                     </el-radio-group>
                   </div>
@@ -73,24 +71,25 @@
                   <el-form :model="passenger.info" label-position="top">
                     <div class="form-row">
                       <el-form-item label="Passenger Type" class="form-item-type">
-                        <el-radio-group v-model="passenger.info.type">
-                          <el-radio :value="'Adult'">Adult</el-radio>
-                          <el-radio :value="'Child'">Child <span class="type-hint">(under 14 years old)</span></el-radio>
+                        <el-radio-group v-model="passenger.info.passengerType">
+                          <el-radio :value="1">Adult</el-radio>
+                          <el-radio :value="2">Child <span class="type-hint">(under 14 years old)</span></el-radio>
                         </el-radio-group>
                       </el-form-item>
                     </div>
 
                     <div class="form-row">
                       <el-form-item label="Passport Name" class="form-item-full">
-                        <el-input v-model="passenger.info.passport_name" placeholder="Full name as shown on passport" />
+                        <el-input v-model="passenger.info.passportName" placeholder="Full name as shown on passport" />
                       </el-form-item>
                     </div>
 
                     <div class="form-row">
                       <el-form-item label="Gender" class="form-item-third">
                         <el-select v-model="passenger.info.gender" placeholder="Select">
-                          <el-option label="Male" value="male" />
-                          <el-option label="Female" value="female" />
+                          <el-option label="Male" :value="1" />
+                          <el-option label="Female" :value="2" />
+                          <el-option label="--" :value="0" />
                         </el-select>
                       </el-form-item>
                       <el-form-item label="Birthday" class="form-item-third">
@@ -120,7 +119,6 @@
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -207,94 +205,94 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Right column: Order summary and payment info -->
       <div class="right-column">
         <div class="order-summary-card">
-        <div class="order-summary-header">
-          <h2>Order summary</h2>
-          <i class="el-icon-edit"></i>
-        </div>
-
-        <div class="ticket-info">
-          <div class="ticket-type">{{ ticketInfo.seatType }}</div>
-          <div class="ticket-type-label">E-ticket</div>
-        </div>
-
-        <div class="ticket-option">
-          <div class="option-label">Flexible</div>
-          <div class="option-info-icon">i</div>
-        </div>
-
-        <div class="price-section">
-          <!-- 票价明细 -->
-          <div class="price-details">
-            <div class="price-detail-header">Price Details</div>
-            
-            <!-- 乘客类型分组 -->
-            <div v-for="(group, index) in passengerGroups" :key="index" class="price-detail-item">
-              <div class="detail-label">{{ group.type }} x {{ group.count }}</div>
-              <div class="detail-value">{{ formatPrice(group.priceTotal) }}</div>
-            </div>
-            
-            <!-- 服务费 -->
-            <div class="price-detail-item service-fee">
-              <div class="detail-label">Service fee</div>
-              <div class="detail-value">{{ formatPrice(orderSummary.serviceFee) }}</div>
-            </div>
-            
-            <!-- 可退款选项费用 -->
-            <div v-if="refundableOption === 'yes'" class="price-detail-item refundable-fee">
-              <div class="detail-label">Refundable booking</div>
-              <div class="detail-value">{{ formatPrice(9.26) }}</div>
-            </div>
-          </div>
-          
-          <!-- 总金额 -->
-          <div class="total-amount-row">
-            <div class="total-amount-label">Total amount</div>
-            <div class="total-amount-info-icon">i</div>
-            <div class="total-amount">{{ formatPrice(orderSummary.totalAmount) }}</div>
-          </div>
-          <div class="tax-fees-note">includes all taxes and fees</div>
-        </div>
-
-        <el-button type="primary" class="continue-button" icon="el-icon-arrow-right" @click="proceedToPayment">Continue</el-button>
-
-        <div class="details-toggle">See Details <i class="el-icon-arrow-down"></i></div>
-
-        <div class="additional-info">
-          <div class="info-item">
-            <div class="icon-container">
-              <i class="el-icon-train"></i>
-            </div>
-            <div class="info-content">
-              <div class="info-title">Great Choice!</div>
-              <div class="info-details">You have selected one of the best trains for this route. Book now!</div>
-            </div>
+          <div class="order-summary-header">
+            <h2>Order Summary</h2>
+            <i class="el-icon-edit"></i>
           </div>
 
-          <div class="info-item">
-            <div class="icon-container">
-              <i class="el-icon-tickets"></i>
-            </div>
-            <div class="info-content">
-              <div class="info-title">Guaranteed Seat Reservation</div>
-              <div class="info-details">We will issue e-tickets with guaranteed seat reservation. The best seats possible.</div>
-            </div>
+          <div class="ticket-info">
+            <div class="ticket-type">{{ orderInfo.seatType }}</div>
+            <div class="ticket-type-label">E-ticket</div>
           </div>
 
-          <div class="info-item">
-            <div class="icon-container">
-              <i class="el-icon-service"></i>
+          <div class="ticket-option">
+            <div class="option-label">Flexible</div>
+            <div class="option-info-icon">i</div>
+          </div>
+
+          <div class="price-section">
+            <!-- 票价明细 -->
+            <div class="price-details">
+              <div class="price-detail-header">Price Details</div>
+
+              <!-- 乘客类型分组 -->
+              <div v-for="(group, index) in passengerGroups" :key="index" class="price-detail-item">
+                <div class="detail-label">{{ group.passengerType == PASSENGER_TYPE_ADULT ? 'Adult' : 'Child' }} x {{ group.count }}</div>
+                <div class="detail-value">{{ formatPrice(group.seatPrice) }}</div>
+              </div>
+
+              <!-- 服务费 -->
+              <div class="price-detail-item service-fee">
+                <div class="detail-label">Service fee x {{ passengerGroups.length }}</div>
+                <div class="detail-value">{{ formatPrice(orderInfo.seatFee * passengerGroups.length) }}</div>
+              </div>
+
+              <!-- 可退款选项费用 -->
+              <div v-if="refundableOption === 'yes'" class="price-detail-item refundable-fee">
+                <div class="detail-label">Refundable booking  x {{ passengerGroups.length }}</div>
+                <div class="detail-value">{{ formatPrice(50 * passengerGroups.length) }}</div>
+              </div>
             </div>
-            <div class="info-content">
-              <div class="info-title">Real Customer Service</div>
-              <div class="info-details">Need help with your order? Our customer support is always there for you via email or chat.</div>
+
+            <!-- 总金额 -->
+            <div class="total-amount-row">
+              <div class="total-amount-label">Total amount</div>
+              <div class="total-amount-info-icon">i</div>
+              <div class="total-amount">{{ formatPrice(orderSummary.totalAmount) }}</div>
+            </div>
+            <div class="tax-fees-note">includes all taxes and fees</div>
+          </div>
+
+          <el-button type="primary" class="continue-button" icon="el-icon-arrow-right" @click="proceedToPayment">Continue</el-button>
+
+          <div class="details-toggle">See Details <i class="el-icon-arrow-down"></i></div>
+
+          <div class="additional-info">
+            <div class="info-item">
+              <div class="icon-container">
+                <i class="el-icon-train"></i>
+              </div>
+              <div class="info-content">
+                <div class="info-title">Great Choice!</div>
+                <div class="info-details">You have selected one of the best trains for this route. Book now!</div>
+              </div>
+            </div>
+
+            <div class="info-item">
+              <div class="icon-container">
+                <i class="el-icon-tickets"></i>
+              </div>
+              <div class="info-content">
+                <div class="info-title">Guaranteed Seat Reservation</div>
+                <div class="info-details">We will issue e-tickets with guaranteed seat reservation. The best seats possible.</div>
+              </div>
+            </div>
+
+            <div class="info-item">
+              <div class="icon-container">
+                <i class="el-icon-service"></i>
+              </div>
+              <div class="info-content">
+                <div class="info-title">Real Customer Service</div>
+                <div class="info-details">Need help with your order? Our customer support is always there for you via email or chat.</div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
         <div class="page-actions">
           <el-button type="primary" class="continue-button-mobile" @click="proceedToPayment">Continue</el-button>
         </div>
@@ -305,77 +303,55 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
+import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage, ElLoading, ElMessageBox } from "element-plus";
 import { usePassengerStore } from "@/stores/passenger";
 import { useBookingStore } from "@/stores/bookingProcess";
 import { useCurrencyStore } from "@/stores/currencyStore";
+import { useCityStore } from "@/stores/city";
 import { getOrderById, updateOrderPassengers } from "@/api/modules/orders";
+import { formatDuration, formatStation } from "@/utils/formatters";
 
 const route = useRoute();
 const router = useRouter();
 const passengerStore = usePassengerStore();
 const bookingStore = useBookingStore();
 const currencyStore = useCurrencyStore();
+const cityStore = useCityStore();
+const { allCities } = storeToRefs(cityStore);
+const { currency, currencySymbol } = storeToRefs(currencyStore);
 
-// 汇率数据
-const exchangeRates = ref(null);
+// order info
+const orderInfo = ref({});
 
-// 获取汇率数据
-const fetchExchangeRates = async () => {
-  try {
-    // 模拟API调用，实际项目中应该从真实API获取汇率
-    // 这里使用模拟数据，假设1人民币等于：
-    exchangeRates.value = {
-      CNY: 1, // 人民币
-      USD: 0.14, // 美元
-      EUR: 0.13, // 欧元
-      SGD: 0.19, // 新加坡元
-      JPY: 20.85, // 日元
-    };
-  } catch (error) {
-    console.error("获取汇率失败:", error);
-    // 设置默认汇率，以防API调用失败
-    exchangeRates.value = {
-      CNY: 1,
-      USD: 0.14,
-      EUR: 0.13,
-      SGD: 0.19,
-      JPY: 20.85,
-    };
-  }
-};
+// 获取订单ID
+const orderId = computed(() => route.params.orderId);
 
-// 转换价格从人民币到当前选择的货币
-const convertPrice = (cnyPrice) => {
-  if (!exchangeRates.value || !cnyPrice) return 0;
-  const targetCurrency = currencyStore.currency;
-  const rate = exchangeRates.value[targetCurrency];
-  if (!rate) return 0;
-
-  const convertedPrice = parseFloat(cnyPrice) * rate;
-  return Math.ceil(convertedPrice); // 向上取整到整数
-};
-
-// Journey info from store
-const ticketInfo = ref({
-  trainNo: "",
-  from: "",
-  to: "",
-  departTime: "",
-  arriveTime: "",
-  duration: "",
-  seatType: "",
-  price: 0,
-  date: "",
+// 各部分的展开/折叠状态
+const sections = ref({
+  journey: true,
+  passengers: true,
+  contact: false,
 });
 
-// Station details for display
-const stationDetails = {
-  "Beijing, Beijing West Station": "China, Beijing, Lianhuachi Donglu, Fengtai District",
-  "Xian, Xian North station": "China, Xian, JWGQ+34 Weiyang, Xi'an, Shaanxi, China",
-  // Add more station details as needed
-};
+onMounted(async () => {
+  await Promise.all([currencyStore.initialize(), cityStore.initializeCityData()]);
+  // 加载订单乘客信息
+  await loadOrderPassengers();
+
+  // 验证是否有必要的数据
+  const hasRequiredData = orderInfo.value.trainNo && orderInfo.value.from && orderInfo.value.to && orderInfo.value.date;
+
+  if (!hasRequiredData && !orderId.value) {
+    // 如果没有必要的数据且没有订单ID，则重定向到时刻表页面
+    ElMessage.warning("缺少列车信息，请先选择一个列车");
+    router.push("/trains/timetable");
+  }
+
+  // 更新订单流程中的步骤
+  bookingStore.setActiveStep(2); // 设置为第2步（基于0的索引）
+});
 
 // Helper functions for formatting
 function formatDate(dateString) {
@@ -394,8 +370,8 @@ function formatDay(dateString) {
 
 function formatPrice(price) {
   // 先转换价格，再添加货币符号
-  const convertedPrice = convertPrice(price);
-  return `${currencyStore.currencySymbol}${convertedPrice}`;
+  const convertedPrice = currencyStore.convertPrice(price);
+  return `${currencyStore.currencySymbol} ${Math.round(convertedPrice)}`;
 }
 
 function getTrainType(trainNo) {
@@ -420,13 +396,6 @@ function getTrainType(trainNo) {
   }
 }
 
-// 各部分的展开/折叠状态
-const sections = ref({
-  journey: true,
-  passengers: true,
-  contact: false,
-});
-
 // 切换各部分的展开/折叠状态
 function toggleSection(section) {
   sections.value[section] = !sections.value[section];
@@ -438,9 +407,9 @@ const passengersList = ref([
     selectedHistoricalId: null,
     isExpanded: true, // 默认展开第一个乘客
     info: {
-      type: "Adult",
-      passport_name: "",
-      gender: "",
+      passengerType: 1,
+      passportName: "",
+      gender: 0,
       birthday: "",
       passportNumber: "",
       passportExpiry: "",
@@ -463,9 +432,9 @@ function addPassenger() {
     selectedHistoricalId: null,
     isExpanded: true, // 默认展开新添加的乘客
     info: {
-      type: "Adult",
-      passport_name: "",
-      gender: "",
+      passengerType: 1,
+      passportName: "",
+      gender: 0,
       birthday: "",
       passportNumber: "",
       passportExpiry: "",
@@ -490,9 +459,9 @@ function selectHistoricalPassenger(id, passengerIndex) {
   if (!id) {
     // 如果清除选择，重置表单
     passengersList.value[passengerIndex].info = {
-      type: "Adult",
-      passport_name: "",
-      gender: "",
+      passengerType: 1,
+      passportName: "",
+      gender: 0,
       birthday: "",
       passportNumber: "",
       passportExpiry: "",
@@ -506,9 +475,9 @@ function selectHistoricalPassenger(id, passengerIndex) {
   if (passenger) {
     // 填充表单
     passengersList.value[passengerIndex].info = {
-      type: passenger.type || "Adult",
-      passport_name: passenger.passport_name || "",
-      gender: passenger.gender || "",
+      passengerType: passenger.passengerType || 1,
+      passportName: passenger.passportName || "",
+      gender: passenger.gender || 0,
       birthday: passenger.birthday || "",
       passportNumber: passenger.passportNumber || "",
       passportExpiry: passenger.passportExpiry || "",
@@ -561,6 +530,19 @@ function getCountryName(code) {
   return country ? country.name : code;
 }
 
+
+const passengerTypeOptions = [
+  { value: 1, label: "Adult" },
+  { value: 2, label: "Child" },
+];
+
+const passengerTypeMap = {
+  1: "Adult",
+  2: "Child",
+};
+
+const PASSENGER_TYPE_ADULT = 1;
+const PASSENGER_TYPE_CHILD = 2;
 // Contact information
 const contactInfo = ref({
   title: "Mr",
@@ -583,48 +565,49 @@ const showConfirmEmail = ref(false);
 const passengerGroups = computed(() => {
   // 初始化计数器
   const groups = {};
-  
+
   // 对乘客进行分组
-  passengersList.value.forEach(passenger => {
-    const type = passenger.info.type;
-    if (!groups[type]) {
-      groups[type] = {
-        type: type,
+  passengersList.value.forEach((passenger) => {
+    const passengerType = passenger.info.passengerType;
+    if (!groups[passengerType]) {
+      groups[passengerType] = {
+        passengerType: passengerType,
         count: 0,
-        pricePerPerson: type === 'Adult' ? 10 : 5, // 成人和儿童的基础票价
-        feePerPerson: 8, // 每位乘客的服务费
-        priceTotal: 0
+        seatPrice: passengerType === PASSENGER_TYPE_ADULT ? orderInfo.value.seatPrice : orderInfo.value.seatPrice * 0.5, // 成人和儿童的基础票价
+        seatFee: orderInfo.value.seatFee, // 每位乘客的服务费
+        seatPriceTotal: 0,
       };
     }
-    
-    groups[type].count += 1;
+
+    groups[passengerType].count += 1;
     // 单个乘客的总价 = 基础票价 + 服务费
-    const personTotal = groups[type].pricePerPerson + groups[type].feePerPerson;
-    groups[type].priceTotal += personTotal;
+    const personTotal = groups[passengerType].seatPrice + groups[passengerType].seatFee;
+    groups[passengerType].seatPriceTotal += personTotal;
   });
-  
+
   return Object.values(groups);
 });
 
 // Order summary calculation
 const orderSummary = computed(() => {
+  console.log('groups', passengerGroups.value)
   // 所有乘客的票价总和
-  const passengersTotal = passengerGroups.value.reduce((sum, group) => sum + group.priceTotal, 0);
-  
+  const seatPriceSum = passengerGroups.value.reduce((sum, group) => sum + group.seatPrice, 0);
+
   // 服务费总和（已经包含在每位乘客的价格中）
-  const serviceFee = passengerGroups.value.reduce((sum, group) => sum + (group.feePerPerson * group.count), 0);
-  
+  const seatFeeSum = passengerGroups.value.reduce((sum, group) => sum + group.seatFee * group.count, 0);
+
   // 可退款选项费用
-  const refundableFee = refundableOption.value === 'yes' ? 9.26 : 0;
-  
+  const seatRefundSum = refundableOption.value === "yes" ? 50 * passengerGroups.value.length: 0;
+
   // 总金额
-  const totalAmount = passengersTotal + refundableFee;
-  
+  const totalAmount = seatPriceSum + seatFeeSum + seatRefundSum;
+
   return {
-    passengersTotal,
-    serviceFee,
-    refundableFee,
-    totalAmount
+    seatPriceSum,
+    seatFeeSum,
+    seatRefundSum,
+    totalAmount,
   };
 });
 
@@ -645,7 +628,7 @@ const countries = ref([
 
 // Form validation rules
 const rules = {
-  passport_name: [{ required: true, message: "Please enter full passport name", trigger: "blur" }],
+  passportName: [{ required: true, message: "Please enter full passport name", trigger: "blur" }],
   gender: [{ required: true, message: "Please select gender", trigger: "change" }],
   birthday: [{ required: true, message: "Please select birthday", trigger: "change" }],
   passportNumber: [{ required: true, message: "Please enter passport number", trigger: "blur" }],
@@ -659,7 +642,7 @@ function validateForm() {
   for (let i = 0; i < passengersList.value.length; i++) {
     const passenger = passengersList.value[i].info;
 
-    if (!passenger.passport_name) {
+    if (!passenger.passportName) {
       ElMessage.error(`乘客 ${i + 1}: 请输入护照姓名`);
       return false;
     }
@@ -725,7 +708,7 @@ function validateForm() {
 }
 
 // 保存乘客和订单信息
-async function saveOrderData() {
+async function submitOrderPassengers() {
   // 保存所有乘客到store
   passengersList.value.forEach((passenger) => {
     passengerStore.addPassenger({
@@ -736,48 +719,45 @@ async function saveOrderData() {
   // 计算额外费用
   let additionalCost = 0;
   if (refundableOption.value === "yes") {
-    additionalCost += 9.26; // 可退款预订费
+    additionalCost += 50; // 可退款预订费
   }
 
   // 如果有订单ID，则更新订单乘客信息
   if (orderId.value) {
     try {
-      // 计算基础价格和费用
-      const basePrice = 10; // 单个乘客基础价格
-      const baseFee = 8; // 单个乘客服务费
-
       // 准备乘客数据
       const passengersData = passengersList.value.map((passenger) => {
         return {
-          type: passenger.info.type,
-          passport_name: passenger.info.passport_name,
+          passengerType: passenger.info.passengerType,
+          passportName: passenger.info.passportName,
           gender: passenger.info.gender,
           birthday: passenger.info.birthday,
           passportNumber: passenger.info.passportNumber,
           passportExpiry: passenger.info.passportExpiry,
           country: passenger.info.country,
-          price: basePrice,
-          fee: baseFee,
-          price_total: basePrice + baseFee,
+          seatPrice: orderInfo.value.seatPrice,
+          seatFee: orderInfo.value.seatFee,
+          seatRefund: orderInfo.value.seatRefund,
+          seatPriceTotal: orderInfo.value.seatPrice + orderInfo.value.seatFee + orderInfo.value.seatRefund,
         };
       });
 
       // 计算总价
-      const totalPrice = passengersData.reduce((sum, p) => sum + p.price_total, 0) + additionalCost;
+      const totalPrice = passengersData.reduce((sum, p) => sum + p.seatPriceTotal, 0) + additionalCost;
 
       // 准备完整的订单数据
       const orderUpdateData = {
-        trainNo: ticketInfo.value.trainNo,
-        from: ticketInfo.value.from,
-        to: ticketInfo.value.to,
-        seatType: ticketInfo.value.seatType,
-        departTime: ticketInfo.value.departTime,
-        arriveTime: ticketInfo.value.arriveTime,
+        trainNo: orderInfo.value.trainNo,
+        from: orderInfo.value.from,
+        to: orderInfo.value.to,
+        seatType: orderInfo.value.seatType,
+        departTime: orderInfo.value.departTime,
+        arriveTime: orderInfo.value.arriveTime,
         passengers: passengersData,
         price_amount: totalPrice,
         contact: {
           title: contactInfo.value.title,
-          name: contactInfo.value.name || passengersList.value[0].info.passport_name, // 如果没有联系人姓名，使用第一个乘客姓名
+          name: contactInfo.value.name || passengersList.value[0].info.passportName, // 如果没有联系人姓名，使用第一个乘客姓名
           email: contactInfo.value.email,
           phone: contactInfo.value.phone,
           unavailableOption: unavailableOption.value,
@@ -810,7 +790,7 @@ async function proceedToPayment() {
   });
 
   try {
-    if (await saveOrderData()) {
+    if (await submitOrderPassengers()) {
       // 设置订单流程的下一步
       bookingStore.setActiveStep(3); // 移动到支付步骤（索引3）
 
@@ -829,9 +809,6 @@ async function proceedToPayment() {
   }
 }
 
-// 获取订单ID
-const orderId = computed(() => route.params.orderId);
-
 // 乘客信息页面初始化
 
 // 加载订单乘客信息
@@ -845,93 +822,82 @@ const loadOrderPassengers = async () => {
   });
 
   try {
-    // 尝试从 store 中获取车票信息
-    const storeTicketInfo = bookingStore.getTicketInfo();
+    // 如果 store 中没有，则从 API 获取
+    const response = await getOrderById(orderId.value);
+    const orderData = response.data;
+    orderInfo.value = {
+      trainNo: orderData.trainNo,
+      from: orderData.from,
+      to: orderData.to,
+      date: orderData.date,
+      departTime: orderData.departTime,
+      arriveTime: orderData.arriveTime,
+      duration: orderData.duration,
+      seatType: orderData.seatType,
+      seatPrice: orderData.seatPrice,
+      seatFee: orderData.seatFee,
+      seatRefund: orderData.seatRefund || 50,
+      seatPriceTotal: orderData.seatPriceTotal,
+    };
 
-    if (storeTicketInfo) {
-      // 如果 store 中有车票信息，直接使用
-      ticketInfo.value = storeTicketInfo;
-    } else {
-      // 如果 store 中没有，则从 API 获取
-      const response = await getOrderById(orderId.value);
-      const orderData = response.data;
+    // 如果有乘客信息，则填充表单
+    if (orderData.passengers && orderData.passengers.length > 0) {
+      // 清空默认的乘客列表
+      passengersList.value = [];
+      // 将所有乘客添加到列表中
+      orderData.passengers.forEach((passenger, idx) => {
+        passengersList.value.push({
+          selectedHistoricalId: null,
+          isExpanded: idx === 0, // 只展开第一个乘客
+          info: {
+            passengerType: passenger.passengerType || 1,
+            passportName: passenger.passportName || "",
+            gender: passenger.gender || 0,
+            birthday: passenger.birthday || "",
+            passportNumber: passenger.passportNumber || "",
+            passportExpiry: passenger.passportExpiry || "",
+            country: passenger.country || "",
+          },
+        });
+      });
 
-      // 更新车票信息
-      ticketInfo.value = {
-        trainNo: orderData.trainNo || "",
-        from: orderData.from || "",
-        to: orderData.to || "",
-        departTime: orderData.departTime || "",
-        arriveTime: orderData.arriveTime || "",
-        duration: orderData.duration || "",
-        seatType: orderData.seatType || "",
-        price: parseFloat(orderData.priceAmount) || 0,
-        date: orderData.date || "",
+      // 如果没有乘客，添加一个默认的空乘客
+      if (passengersList.value.length === 0) {
+        passengersList.value.push({
+          selectedHistoricalId: null,
+          isExpanded: true,
+          info: {
+            passengerType: 1,
+            passportName: "",
+            gender: 0,
+            birthday: "",
+            passportNumber: "",
+            passportExpiry: "",
+            country: "",
+          },
+        });
+      }
+    }
+
+    // 如果有联系人信息，则填充表单
+    if (orderData.contact) {
+      contactInfo.value = {
+        title: orderData.contact.title || "Mr",
+        name: orderData.contact.name || "",
+        email: orderData.contact.email || "",
+        confirmEmail: orderData.contact.confirmEmail || "",
+        phone: orderData.contact.phone || "",
       };
 
-      // 将车票信息保存到 store
-      bookingStore.setTicketInfo(ticketInfo.value);
-
-      // 如果有乘客信息，则填充表单
-      if (orderData.passengers && orderData.passengers.length > 0) {
-        // 清空默认的乘客列表
-        passengersList.value = [];
-
-        // 将所有乘客添加到列表中
-        orderData.passengers.forEach((passenger, idx) => {
-          passengersList.value.push({
-            selectedHistoricalId: null,
-            isExpanded: idx === 0, // 只展开第一个乘客
-            info: {
-              type: passenger.type || "Adult",
-              passport_name: passenger.passport_name || "",
-              gender: passenger.gender || "",
-              birthday: passenger.birthday || "",
-              passportNumber: passenger.passportNumber || "",
-              passportExpiry: passenger.passportExpiry || "",
-              country: passenger.country || "",
-            },
-          });
-        });
-
-        // 如果没有乘客，添加一个默认的空乘客
-        if (passengersList.value.length === 0) {
-          passengersList.value.push({
-            selectedHistoricalId: null,
-            isExpanded: true,
-            info: {
-              type: "Adult",
-              passport_name: "",
-              gender: "",
-              birthday: "",
-              passportNumber: "",
-              passportExpiry: "",
-              country: "",
-            },
-          });
-        }
+      // 填充其他选项
+      if (orderData.contact.unavailableOption) {
+        unavailableOption.value = orderData.contact.unavailableOption;
       }
-
-      // 如果有联系人信息，则填充表单
-      if (orderData.contact) {
-        contactInfo.value = {
-          title: orderData.contact.title || "Mr",
-          name: orderData.contact.name || "",
-          email: orderData.contact.email || "",
-          confirmEmail: orderData.contact.confirmEmail || "",
-          phone: orderData.contact.phone || "",
-        };
-
-        // 填充其他选项
-        if (orderData.contact.unavailableOption) {
-          unavailableOption.value = orderData.contact.unavailableOption;
-        }
-        if (orderData.contact.refundableOption) {
-          refundableOption.value = orderData.contact.refundableOption;
-        }
-        if (orderData.contact.receiveOption) {
-          receiveOption.value = orderData.contact.receiveOption;
-        }
+      if (orderData.contact.refundableOption) {
+        refundableOption.value = orderData.contact.refundableOption;
+      }
+      if (orderData.contact.receiveOption) {
+        receiveOption.value = orderData.contact.receiveOption;
       }
     }
   } catch (error) {
@@ -941,42 +907,6 @@ const loadOrderPassengers = async () => {
     loading.close();
   }
 };
-
-onMounted(() => {
-  // 获取汇率数据
-  fetchExchangeRates();
-
-  // 加载订单乘客信息
-  loadOrderPassengers();
-
-  // 如果是从路由参数获取的订单信息
-  if (route.query && Object.keys(route.query).length > 0) {
-    // 从路由参数填充车票信息
-    ticketInfo.value = {
-      trainNo: route.query.trainNo || "",
-      from: route.query.from || "",
-      to: route.query.to || "",
-      departTime: route.query.departTime || "",
-      arriveTime: route.query.arriveTime || "",
-      duration: route.query.duration || "",
-      seatType: route.query.seatType || "",
-      price: parseFloat(route.query.price) || 0,
-      date: route.query.date || "",
-    };
-  }
-
-  // 验证是否有必要的数据
-  const hasRequiredData = ticketInfo.value.trainNo && ticketInfo.value.from && ticketInfo.value.to && ticketInfo.value.date;
-
-  if (!hasRequiredData && !orderId.value) {
-    // 如果没有必要的数据且没有订单ID，则重定向到时刻表页面
-    ElMessage.warning("缺少列车信息，请先选择一个列车");
-    router.push("/trains/timetable");
-  }
-
-  // 更新订单流程中的步骤
-  bookingStore.setActiveStep(2); // 设置为第2步（基于0的索引）
-});
 </script>
 
 <style scoped>
