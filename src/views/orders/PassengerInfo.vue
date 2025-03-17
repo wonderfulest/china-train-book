@@ -11,23 +11,31 @@
           </div>
           <div class="journey-card" v-if="sections.journey">
             <div class="date-section">
-              <div class="date">{{ formatDate(orderInfo.date) }}</div>
-              <div class="day">{{ formatDay(orderInfo.date) }}, {{ orderInfo.departTime }}</div>
+              <div class="date">{{ formatDate(orderInfo.fromDate) }}</div>
+              <div class="day">{{ formatDay(orderInfo.fromDate) }}</div>
             </div>
             <div class="journey-details">
               <div class="station-info">
-                <div class="station-name">{{ formatStation(orderInfo.from, allCities) }} - {{ orderInfo.departTime }}</div>
-              </div>
-              <div class="train-info">
-                <div class="train-number">Train #{{ orderInfo.trainNo }} - {{ getTrainType(orderInfo.trainNo) }} / Travel time {{ orderInfo.duration }}</div>
-              </div>
-              <div class="station-info">
-                <div class="station-name">{{ formatStation(orderInfo.to, allCities) }} - {{ orderInfo.arriveTime }}</div>
+                <div class="journey-route">
+                  <div class="station-city">{{ formatStation(orderInfo.fromStation, allCities) }}</div>
+                  <div class="station-time">{{ orderInfo.fromTime }}</div>
+                </div>
+                <div class="journey-arrow">
+                  <div class="train-details">
+                    <span class="train-number">{{ orderInfo.trainNo }}</span> 
+                    -
+                    <span class="seat-type">{{ orderInfo.seatType }}</span>
+                  </div>
+                  <div class="travel-time">{{ formatDuration(orderInfo.runTime) }}</div>
+                </div>
+                <div class="journey-route">
+                  <div class="station-city">{{ formatStation(orderInfo.toStation, allCities) }}</div>
+                  <div class="station-time">{{ orderInfo.toTime }}</div>
+                </div>
               </div>
               <div class="seat-preferences">
-                {{ orderInfo }} 
-                <span>{{ orderInfo.seatType }}</span>
-                <span class="price-tag">{{ formatPrice(orderInfo.seatPriceTotal) }}</span>
+                <span>Adult Ticket Price: {{ formatPrice(orderInfo.seatPrice) }} + Service Fee: {{ formatPrice(orderInfo.seatFee) }}</span>
+                <span class="price-tag">{{ currencyStore.currencySymbol }} {{ convertPrice(orderInfo.seatPrice) + convertPrice(orderInfo.seatFee) }}</span>
               </div>
             </div>
           </div>
@@ -341,7 +349,7 @@ onMounted(async () => {
   await loadOrderPassengers();
 
   // 验证是否有必要的数据
-  const hasRequiredData = orderInfo.value.trainNo && orderInfo.value.from && orderInfo.value.to && orderInfo.value.date;
+  const hasRequiredData = orderInfo.value.trainNo && orderInfo.value.fromStation && orderInfo.value.toStation && orderInfo.value.fromDate;
 
   if (!hasRequiredData && !orderId.value) {
     // 如果没有必要的数据且没有订单ID，则重定向到时刻表页面
@@ -368,32 +376,14 @@ function formatDay(dateString) {
   return date.toLocaleString("en-US", { weekday: "short" });
 }
 
+function convertPrice(price) {
+  return Math.round(currencyStore.convertPrice(price));
+}
+
 function formatPrice(price) {
   // 先转换价格，再添加货币符号
   const convertedPrice = currencyStore.convertPrice(price);
   return `${currencyStore.currencySymbol} ${Math.round(convertedPrice)}`;
-}
-
-function getTrainType(trainNo) {
-  if (!trainNo) return "Train";
-  // Simple logic to determine train type based on train number
-  const prefix = trainNo.toString().charAt(0).toUpperCase();
-  switch (prefix) {
-    case "G":
-      return "High-Speed Train";
-    case "D":
-      return "Electric Multiple Unit";
-    case "C":
-      return "Intercity Train";
-    case "Z":
-      return "Direct Express";
-    case "T":
-      return "Express Train";
-    case "K":
-      return "Fast Train";
-    default:
-      return "Regular Train";
-  }
 }
 
 // 切换各部分的展开/折叠状态
@@ -530,6 +520,12 @@ function getCountryName(code) {
   return country ? country.name : code;
 }
 
+// 获取火车类型
+function getTrainType(trainNo) {
+  // 这里需要根据火车号获取火车类型
+  // 暂时返回一个固定值
+  return 'High-Speed Train';
+}
 
 const passengerTypeOptions = [
   { value: 1, label: "Adult" },
@@ -748,11 +744,11 @@ async function submitOrderPassengers() {
       // 准备完整的订单数据
       const orderUpdateData = {
         trainNo: orderInfo.value.trainNo,
-        from: orderInfo.value.from,
-        to: orderInfo.value.to,
+        fromStation: orderInfo.value.fromStation,
+        toStation: orderInfo.value.toStation,
         seatType: orderInfo.value.seatType,
-        departTime: orderInfo.value.departTime,
-        arriveTime: orderInfo.value.arriveTime,
+        departTime: orderInfo.value.fromTime,
+        arriveTime: orderInfo.value.toTime,
         passengers: passengersData,
         price_amount: totalPrice,
         contact: {
@@ -810,8 +806,6 @@ async function proceedToPayment() {
 }
 
 // 乘客信息页面初始化
-
-// 加载订单乘客信息
 const loadOrderPassengers = async () => {
   if (!orderId.value) return;
 
@@ -827,12 +821,12 @@ const loadOrderPassengers = async () => {
     const orderData = response.data;
     orderInfo.value = {
       trainNo: orderData.trainNo,
-      from: orderData.from,
-      to: orderData.to,
-      date: orderData.date,
-      departTime: orderData.departTime,
-      arriveTime: orderData.arriveTime,
-      duration: orderData.duration,
+      fromStation: orderData.fromStation,
+      toStation: orderData.toStation,
+      fromDate: orderData.fromDate,
+      fromTime: orderData.fromTime,
+      toTime: orderData.toTime,
+      runTime: orderData.runTime,
       seatType: orderData.seatType,
       seatPrice: orderData.seatPrice,
       seatFee: orderData.seatFee,
@@ -984,52 +978,96 @@ h2 {
 
 .station-info {
   margin-bottom: 15px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.journey-route {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 30%;
+}
+
+.station-city {
+  font-weight: bold;
+  font-size: 16px;
+  color: var(--text-color-dark);
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+.station-time {
+  font-size: 14px;
+  color: var(--text-color-grey);
+  text-align: center;
+}
+
+.journey-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 40%;
+  position: relative;
+}
+
+.journey-arrow i {
+  font-size: 24px;
+  color: var(--primary-color);
+  margin: 5px 0;
+}
+
+.train-details {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 5px;
+  gap: 16px;
+}
+
+.train-number {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-color-dark);
+}
+
+.seat-type {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-color-dark);
+}
+
+.travel-time {
+  font-size: 14px;
+  color: var(--text-color-grey);
+  text-align: center;
+  margin-top: 3px;
+}
+
+.journey-arrow::before,
+.journey-arrow::after {
+  content: '';
+  position: absolute;
+  height: 2px;
+  background-color: var(--primary-color);
+  top: 50%;
+  width: 35%;
+}
+
+.journey-arrow::before {
+  left: 5%;
+}
+
+.journey-arrow::after {
+  right: 5%;
 }
 
 .station-name {
   font-weight: bold;
   font-size: 16px;
-}
-
-.station-details {
-  font-size: 12px;
-  color: #909399;
-}
-
-.train-info {
-  padding: 10px 0;
-  margin: 10px 0;
-  border-top: 1px dashed #e4e7ed;
-  border-bottom: 1px dashed #e4e7ed;
-  font-size: 14px;
-  color: #606266;
-}
-
-.seat-preferences {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: #409eff;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.price-tag {
-  background-color: #f0f9eb;
-  color: #67c23a;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: bold;
-}
-
-.email-input-section p {
-  margin-bottom: 10px;
-  font-size: 14px;
-  color: #606266;
-}
-
-.email-input {
-  width: 100%;
 }
 
 .passenger-card {

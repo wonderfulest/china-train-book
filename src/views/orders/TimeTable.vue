@@ -27,9 +27,9 @@
     <!-- <div class="sort-section">
       <span class="result-count">{{ trains.length }} results sorted by</span>
       <div class="sort-options">
-        <div class="sort-option" :class="{ active: sortBy === 'departTime' }" @click="setSortOption('departTime')">
+        <div class="sort-option" :class="{ active: sortBy === 'fromTime' }" @click="setSortOption('fromTime')">
           Departure time
-          <Icon :icon="sortBy === 'departTime' ? (sortDirection === 'asc' ? 'mdi:arrow-up' : 'mdi:arrow-down') : 'mdi:arrow-down'" width="16" height="16" />
+          <Icon :icon="sortBy === 'fromTime' ? (sortDirection === 'asc' ? 'mdi:arrow-up' : 'mdi:arrow-down') : 'mdi:arrow-down'" width="16" height="16" />
         </div>
         <div class="sort-option" :class="{ active: sortBy === 'travelTime' }" @click="setSortOption('travelTime')">
           Travel time
@@ -49,13 +49,13 @@
           <div class="train-item">
             <!-- Departure information -->
             <div class="col departure-section">
-              <div class="time-large">{{ train.departTime }}</div>
-              <div class="station">{{ formatStation(train.departStation, allCities) }}</div>
+              <div class="time-large">{{ train.fromTime }}</div>
+              <div class="station">{{ formatStation(train.fromStation, allCities) }}</div>
             </div>
 
             <!-- Connection line with distance -->
             <div class="col connection-section">
-              <div class="distance">{{ formatDuration(train.duration) }}</div>
+              <div class="distance">{{ formatDuration(train.runTime) }}</div>
               <div class="connection-line">
                 <div class="connection-dot start"></div>
                 <div class="connection-dot end"></div>
@@ -64,8 +64,8 @@
 
             <!-- Arrival information -->
             <div class="col arrival-section">
-              <div class="time-large">{{ train.arrivalTime }}</div>
-              <div class="station">{{ formatStation(train.arrivalStation, allCities) }}</div>
+              <div class="time-large">{{ train.toTime }}</div>
+              <div class="station">{{ formatStation(train.toStation, allCities) }}</div>
             </div>
 
             <!-- Train type info -->
@@ -129,7 +129,7 @@
                         <div class="dialog-price-amount"> {{ currencyStore.convertPrice(seat.seatPriceTotal) }}</div>
                       </div>
                       <div class="dialog-per-seat">Per seat</div>
-                      <el-button v-if="selectedSeatIndex === index" type="primary" class="dialog-book-btn" @click="goToCreateOrder(train, seat)">Book</el-button>
+                      <el-button v-if="selectedSeatIndex === index" type="primary" class="dialog-book-btn" @click="submitTrainSeat(train, seat)">Book</el-button>
                     </div>
                   </div>
                 </div>
@@ -138,9 +138,9 @@
 
             <div class="dialog-footer">
               <div class="dialog-total">
-                Total amount for 1 passenger: <span class="dialog-total-price">{{ currencySymbol }}{{ selectedSeatIndex >= 0 && train.seats ? currencyStore.convertPrice(train.seats[selectedSeatIndex].price) : currencyStore.convertPrice(train.minPrice) }}</span>
+                Total amount for 1 passenger: <span class="dialog-total-price">{{ currencySymbol }}{{ selectedSeatIndex >= 0 && train.seats ? currencyStore.convertPrice(train.seats[selectedSeatIndex].seatPriceTotal) : currencyStore.convertPrice(train.minPrice) }}</span>
               </div>
-              <el-button type="primary" class="dialog-continue-btn" @click="goToCreateOrder(train, selectedSeatIndex >= 0 && train.seats ? train.seats[selectedSeatIndex] : train.seats[0])"> Continue <i class="el-icon-arrow-right"></i> </el-button>
+              <el-button type="primary" class="dialog-continue-btn" @click="submitTrainSeat(train, selectedSeatIndex >= 0 && train.seats ? train.seats[selectedSeatIndex] : train.seats[0])"> Continue <i class="el-icon-arrow-right"></i> </el-button>
             </div>
           </div>
         </div>
@@ -155,11 +155,10 @@ import { ref, computed, onMounted, watch } from "vue";
 import { formatDuration, formatStation } from "@/utils/formatters";
 import { format } from "date-fns";
 import { useBookingStore } from "@/stores/bookingProcess";
-import { updateOrderTrainSeat } from "@/api/modules/orders";
 import { Switch, Location, Close, Edit } from "@element-plus/icons-vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage, ElLoading } from "element-plus";
-import { getOrderTimetable } from "@/api/modules/orders";
+import { getOrderTimetable, updateOrderTrainSeat } from "@/api/modules/orders";
 import { getExchangeRate } from "@/api/modules/exchange";
 import { useCityStore } from "@/stores/city";
 import { useCurrencyStore } from "@/stores/currencyStore";
@@ -306,6 +305,7 @@ const initialize = async () => {
 
           // 处理列车数据
           processTrainData(trains);
+          console.log("列车数据:", trains.value);
         } else {
           ElMessage.error("获取时刻表数据失败");
         }
@@ -385,7 +385,6 @@ const processTrainData = (trainsData) => {
     // 处理座位信息
     const seats = [];
     if (train.swzPrice) {
-
       seats.push({
         type: "Business Class",
         seatPriceRaw: train.swzPrice,
@@ -422,11 +421,12 @@ const processTrainData = (trainsData) => {
       id: train.trainNo,
       number: train.trainCode,
       type: train.trainType === "G" ? "High-speed G" : train.trainType === "D" ? "High-speed D" : "Normal K",
-      departTime: train.fromTime,
-      departStation: train.fromStation,
-      duration: train.runTime,
-      arrivalTime: train.toTime,
-      arrivalStation: train.toStation,
+      fromStation: train.fromStation,
+      toStation: train.toStation,
+      fromDate: train.fromDate,
+      fromTime: train.fromTime,
+      toTime: train.toTime,
+      runTime: train.runTime,
       expanded: false,
       canBook: train.canBook,
       seats: seats,
@@ -486,11 +486,12 @@ const searchTrains = async () => {
         id: train.trainNo,
         number: train.trainCode,
         type: train.trainType === "G" ? "High-speed G" : train.trainType === "D" ? "High-speed D" : "Normal K",
-        departTime: train.fromTime,
-        departStation: train.fromStation,
-        duration: train.runTime,
-        arrivalTime: train.toTime,
-        arrivalStation: train.toStation,
+        fromStation: train.fromStation,
+        toStation: train.toStation,
+        fromDate: train.fromDate,
+        fromTime: train.fromTime,
+        toTime: train.toTime,
+        runTime: train.runTime,
         expanded: false,
         canBook: train.canBook,
         seats: seats,
@@ -570,8 +571,8 @@ const formatDate = (dateString) => {
   }
 };
 
-// 跳转到乘客信息页面
-const goToCreateOrder = async (train, seat) => {
+// 提交车次和座位客信息，跳转到乘客信息页面
+const submitTrainSeat = async (train, seat) => {
   // 显示加载中
   const loading = ElLoading.service({
     lock: true,
@@ -584,11 +585,12 @@ const goToCreateOrder = async (train, seat) => {
       orderId: bookingStore.orderId,
       step: 2,
       trainNo: train.number,
-      from: train.departStation,
-      to: train.arrivalStation,
-      date: date.value,
-      departTime: train.departTime,
-      arriveTime: train.arrivalTime,
+      fromStation: train.fromStation,
+      toStation: train.toStation,
+      fromDate: date.value,
+      fromTime: train.fromTime,
+      toTime: train.toTime,
+      runTime: train.runTime,
       seatType: seat.type,
       seatPriceRaw: seat.seatPriceRaw,
       seatPrice: seat.seatPrice,

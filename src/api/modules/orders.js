@@ -57,21 +57,7 @@ export const updateOrderTrainSeat = (orderId, trainSeatData) => {
   return request({
     url: `/orders/${orderId}/trainSeat`,
     method: 'post',
-    data: {
-      orderId: orderId,
-      step: 2,
-      trainNo: trainSeatData.trainNo,
-      from: trainSeatData.from,
-      to: trainSeatData.to,
-      date: trainSeatData.date,
-      departTime: trainSeatData.departTime,
-      arriveTime: trainSeatData.arriveTime,
-      seatType: trainSeatData.seatType,
-      seatPriceRaw: trainSeatData.seatPriceRaw,
-      seatPrice: trainSeatData.seatPrice,
-      seatFee: trainSeatData.seatFee,
-      seatPriceTotal: trainSeatData.seatPriceTotal
-    }
+    data: trainSeatData
   });
 };
 
