@@ -28,6 +28,7 @@ export const formatStation = (station, cities) => {
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join("");
   }
+  console.log('station', station, cities)
   return station;
 };
 

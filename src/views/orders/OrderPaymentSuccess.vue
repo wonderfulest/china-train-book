@@ -1,60 +1,57 @@
 <template>
-  <div class="payment-success">
-    <div class="success-card">
-      <div class="success-header">
-        <el-icon class="success-icon"><CircleCheckFilled /></el-icon>
-        <h1>Payment Successful!</h1>
-        <p class="subtitle">Your payment has been processed successfully</p>
-        <div class="order-id">
-          Order ID: <span>{{ orderId }}</span>
-          <p class="save-reminder">Please save this order ID for future reference</p>
-        </div>
-      </div>
-      
-      <!-- 订单详情 -->
-      <div v-if="orderData" class="order-details">
-        <h2>Order Details</h2>
-        
-        <div class="train-info">
-          <div class="train-header">
-            <div class="train-tag">Train {{ orderData.trainNo || 'N/A' }}</div>
-            <div class="train-date">{{ formatDisplayDate(new Date()) }}</div>
-          </div>
-          
-          <div class="train-route">
-            <div class="station departure">
-              <div class="name">{{ getStationName(orderData.from) }}</div>
-              <div class="time">{{ orderData.departTime || 'N/A' }}</div>
+    <div class="payment-success">
+        <div class="success-card">
+            <div class="success-header">
+                <el-icon class="success-icon">
+                    <CircleCheckFilled />
+                </el-icon>
+                <h1>Payment Successful!</h1>
+                <p class="subtitle">Your payment has been processed successfully</p>
+                <div class="order-id">
+                    Order ID: <span>{{ orderId }}</span>
+                    <p class="save-reminder">Please save this order ID for future reference</p>
+                </div>
             </div>
-            
-            <div class="route-info">
-              <div class="seat-type">{{ orderData.seatType || 'Standard Seat' }}</div>
-              <div class="duration">{{ calculateDuration(orderData.departTime, orderData.arriveTime) }}</div>
-            </div>
-            
-            <div class="station arrival">
-              <div class="name">{{ getStationName(orderData.to) }}</div>
-              <div class="time">{{ orderData.arriveTime || 'N/A' }}</div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 乘客信息 -->
-        <div class="passengers-info" v-if="orderData.passengers && orderData.passengers.length > 0">
-          <h3>Passenger Information</h3>
-          <el-table :data="orderData.passengers" stripe style="width: 100%">
-            <el-table-column prop="passportName" label="Name" />
-            <el-table-column label="Type">
-              <template #default="{row}">
-                {{ getPassengerType(row.passengerType) }}
-              </template>
+    
+            <!-- 订单详情 -->
+            <div v-if="orderData" class="order-details">
+                <h2>Order Details</h2>
+    
+                <div class="train-info">
+                    <div class="train-header">
+                        <div class="train-tag">Train {{ orderData.trainNo || 'N/A' }}</div>
+                        <div class="train-date">{{ formatDisplayDate(new Date()) }}</div>
+                    </div>
+    
+                    <div class="train-route">
+                        <div class="station departure">
+                            <div class="name">{{ formatStation(orderData.fromStation, allCities) }}</div>
+                            <div class="time">{{ orderData.fromTime || 'N/A' }}</div>
+                        </div>
+    
+                        <div class="route-info">
+                            <div class="seat-type">{{ orderData.seatType || 'Standard Seat' }}</div>
+                            <div class="duration">{{ orderData.runTime || calculateDuration(orderData.fromTime, orderData.toTime) }}</div>
+                        </div>
+    
+                        <div class="station arrival">
+                            <div class="name">{{ formatStation(orderData.toStation, allCities) }}</div>
+                            <div class="time">{{ orderData.toTime || 'N/A' }}</div>
+                        </div>
+                    </div>
+                </div>
+    
+                <!-- 乘客信息 -->
+                <div class="passengers-info" v-if="orderData.passengers && orderData.passengers.length > 0">
+                    <h3>Passenger Information</h3>
+                    <el-table :data="orderData.passengers" stripe style="width: 100%">
+                        <el-table-column prop="passportName" label="Name" />
+                        <el-table-column label="Type">
+                            <template #default="{row}">
+                    {{ getPassengerType(row.passengerType) }}
+</template>
             </el-table-column>
             <el-table-column prop="passportNumber" label="Passport" />
-            <el-table-column label="Price">
-              <template #default="{row}">
-                {{ formatUSDPrice(row.priceTotal) }}
-              </template>
-            </el-table-column>
           </el-table>
         </div>
         
@@ -71,7 +68,7 @@
             </div>
             <div class="info-item">
               <label>Amount Paid</label>
-              <div>{{ formatUSDPrice(orderData.priceAmount) }}</div>
+              <div>{{ totalAmount }}</div>
             </div>
             <div class="info-item">
               <label>Payment Status</label>
@@ -155,11 +152,17 @@
 
 <script setup>
 import { CircleCheckFilled, Download } from '@element-plus/icons-vue'
+import { computed } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElLoading, ElTable, ElTableColumn } from 'element-plus'
 import { getOrderById } from '@/api/modules/orders'
 import { useCurrencyStore } from '@/stores/currencyStore'
+import { useCityStore } from '@/stores/city'
+const cityStore = useCityStore();
+const { allCities } = storeToRefs(cityStore);
+import { formatDuration, formatStation } from "@/utils/formatters";
 
 const router = useRouter()
 const route = useRoute()
@@ -167,181 +170,171 @@ const orderId = ref(route.params.orderId)
 const orderData = ref(null)
 const currencyStore = useCurrencyStore()
 
+const totalAmount = computed(() => {
+    const seatFee = currencyStore.convertPrice(orderData.value.seatFee) * orderData.value.passengers.length
+    let seatPrice = 0;
+    orderData.value.passengers.forEach(passenger => {
+        if (passenger.passengerType === 1) {
+            seatPrice += currencyStore.convertPrice(passenger.passengerPrice)
+        } else {
+            seatPrice += currencyStore.convertPrice(passenger.passengerPrice * 0.6)
+        }
+    })
+    let refundableFee = 0;
+    if (orderData.value.contact.refundableOption === 'yes') {
+        refundableFee = Math.ceil(seatPrice * 0.1)
+    }
+    return seatFee + seatPrice + refundableFee
+})
+
 // 获取订单数据
 async function fetchOrderData() {
-  if (!orderId.value) {
-    ElMessage.error('Invalid order ID');
-    router.push('/');
-    return;
-  }
-  
-  const loading = ElLoading.service({
-    lock: true,
-    text: 'Loading order data...',
-    background: 'rgba(0, 0, 0, 0.7)'
-  });
-  
-  try {
-    const response = await getOrderById(orderId.value);
-    orderData.value = response.data;
-    console.log('订单数据:', orderData.value);
-    
-    // 如果没有获取到有效数据
-    if (!orderData.value) {
-      ElMessage.error('Failed to load order data');
-      // router.push('/');
+    if (!orderId.value) {
+        ElMessage.error('Invalid order ID');
+        router.push('/');
+        return;
     }
-  } catch (error) {
-    console.error('Error fetching order data:', error);
-    ElMessage.error('Failed to load order data');
-    // router.push('/');
-  } finally {
-    loading.close();
-  }
-}
 
-// 获取车站名称
-function getStationName(code) {
-  if (!code) return 'N/A';
-  
-  const stationMap = {
-    'BJP': 'Beijing',
-    'TJP': 'Tianjin',
-    'SHH': 'Shanghai',
-    'GZQ': 'Guangzhou',
-    'SZQ': 'Shenzhen',
-    'CDW': 'Chengdu',
-    'CQW': 'Chongqing',
-    'HZH': 'Hangzhou',
-    'NJH': 'Nanjing',
-    'XAY': 'Xi\'an'
-  };
-  
-  return stationMap[code] || code;
+    const loading = ElLoading.service({
+        lock: true,
+        text: 'Loading order data...',
+        background: 'rgba(0, 0, 0, 0.7)'
+    });
+
+    try {
+        const response = await getOrderById(orderId.value);
+        orderData.value = response.data;
+        console.log('订单数据:', orderData.value);
+
+        // 如果没有获取到有效数据
+        if (!orderData.value) {
+            ElMessage.error('Failed to load order data');
+            // router.push('/');
+        }
+    } catch (error) {
+        console.error('Error fetching order data:', error);
+        ElMessage.error('Failed to load order data');
+        // router.push('/');
+    } finally {
+        loading.close();
+    }
 }
 
 // 获取乘客类型
 function getPassengerType(type) {
-  const typeMap = {
-    1: 'Adult',
-    2: 'Child',
-    3: 'Student',
-    4: 'Senior'
-  };
-  
-  return typeMap[type] || 'Adult';
+    const typeMap = {
+        1: 'Adult',
+        2: 'Child',
+        3: 'Student',
+        4: 'Senior'
+    };
+
+    return typeMap[type] || 'Adult';
 }
 
 // 获取支付状态
 function getPaymentStatus(status) {
-  const statusMap = {
-    0: 'Pending',
-    1: 'Completed',
-    2: 'Failed',
-    3: 'Refunded'
-  };
-  
-  return statusMap[status] || 'Unknown';
+    const statusMap = {
+        0: 'Pending',
+        1: 'Completed',
+        2: 'Failed',
+        3: 'Refunded'
+    };
+
+    return statusMap[status] || 'Unknown';
 }
 
 // 首字母大写
 function capitalizeFirstLetter(string) {
-  if (!string) return '';
-  return string.charAt(0).toUpperCase() + string.slice(1);
+    if (!string) return '';
+    return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 // 格式化显示日期
 function formatDisplayDate(dateString) {
-  if (!dateString) return '';
-  
-  const date = new Date(dateString);
-  const options = { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric',
-    weekday: 'short'
-  };
-  
-  return date.toLocaleDateString('en-US', options);
+    if (!dateString) return '';
+
+    const date = new Date(dateString);
+    const options = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        weekday: 'short'
+    };
+
+    return date.toLocaleDateString('en-US', options);
 }
 
 // 计算行程时长
 function calculateDuration(departTime, arriveTime) {
-  if (!departTime || !arriveTime) return '';
-  
-  let [departHours, departMinutes] = departTime.split(':').map(Number);
-  let [arriveHours, arriveMinutes] = arriveTime.split(':').map(Number);
-  
-  // 处理跨天的情况
-  if ((arriveHours < departHours) || (arriveHours === departHours && arriveMinutes < departMinutes)) {
-    arriveHours += 24;
-  }
-  
-  const totalMinutes = (arriveHours - departHours) * 60 + (arriveMinutes - departMinutes);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  
-  return `${hours}h ${minutes}m`;
-}
+    if (!departTime || !arriveTime) return '';
 
-// 格式化美元价格
-function formatUSDPrice(cnyPrice) {
-  if (!cnyPrice) return '$0.00';
-  const usdPrice = parseFloat(cnyPrice) * 0.14; // 使用固定汇率进行简单转换
-  return `${currencyStore.currencySymbol} ${Math.round(usdPrice)}`;
+    let [departHours, departMinutes] = departTime.split(':').map(Number);
+    let [arriveHours, arriveMinutes] = arriveTime.split(':').map(Number);
+
+    // 处理跨天的情况
+    if ((arriveHours < departHours) || (arriveHours === departHours && arriveMinutes < departMinutes)) {
+        arriveHours += 24;
+    }
+
+    const totalMinutes = (arriveHours - departHours) * 60 + (arriveMinutes - departMinutes);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    return `${hours}h ${minutes}m`;
 }
 
 // 格式化日期
 function formatDate(date) {
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
 const backToHome = () => {
-  router.push('/')
+    router.push('/')
 }
 
 const viewBookings = () => {
-  router.push('/orders')
+    router.push('/orders')
 }
 
 const contactSupport = () => {
-  // 实现联系支持的逻辑
-  window.open('mailto:support@chinatrainstickets.com')
+    // 实现联系支持的逻辑
+    window.open('mailto:support@chinatrainstickets.com')
 }
 
 const downloadOrderDetails = () => {
-  if (!orderData.value) {
-    ElMessage.warning('Order data is still loading. Please try again.');
-    return;
-  }
-  
-  const now = new Date().toLocaleString();
-  let passengersInfo = '';
-  
-  if (orderData.value.passengers && orderData.value.passengers.length > 0) {
-    passengersInfo = '\nPassengers:\n';
-    orderData.value.passengers.forEach((passenger, index) => {
-      passengersInfo += `${index + 1}. ${passenger.passportName} (${getPassengerType(passenger.passengerType)}) - Passport: ${passenger.passportNumber}\n`;
-    });
-  }
-  
-  const content = `China Train Tickets - Order Details
+    if (!orderData.value) {
+        ElMessage.warning('Order data is still loading. Please try again.');
+        return;
+    }
+
+    const now = new Date().toLocaleString();
+    let passengersInfo = '';
+
+    if (orderData.value.passengers && orderData.value.passengers.length > 0) {
+        passengersInfo = '\nPassengers:\n';
+        orderData.value.passengers.forEach((passenger, index) => {
+            passengersInfo += `${index + 1}. ${passenger.passportName} (${getPassengerType(passenger.passengerType)}) - Passport: ${passenger.passportNumber}\n`;
+        });
+    }
+
+    const content = `China Train Tickets - Order Details
 
 Order ID: ${orderId.value}
 Date: ${now}
 Train: ${orderData.value.trainNo || 'N/A'}
-From: ${getStationName(orderData.value.from)}
-To: ${getStationName(orderData.value.to)}
-Departure: ${orderData.value.departTime || 'N/A'}
-Arrival: ${orderData.value.arriveTime || 'N/A'}
+From: ${formatStation(orderData.value.fromStation, allCities)}
+To: ${formatStation(orderData.value.toStation, allCities)}
+Departure: ${orderData.value.fromTime || 'N/A'}
+Arrival: ${orderData.value.toTime || 'N/A'}
 Seat Type: ${orderData.value.seatType || 'Standard Seat'}
-Amount Paid: ${formatUSDPrice(orderData.value.priceAmount)}
+Amount Paid: ${totalAmount}
 ${passengersInfo}
 Payment Method: ${orderData.value.payment ? capitalizeFirstLetter(orderData.value.payment.paymentMethod) : 'PayPal'}
 Payment ID: ${orderData.value.payment ? orderData.value.payment.paymentId : 'N/A'}
@@ -351,330 +344,326 @@ Please keep this information safe for future reference.
 For any assistance, contact support@chinatrainstickets.com
 `
 
-  const blob = new Blob([content], { type: 'text/plain' })
-  const url = window.URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `order-${orderId.value}.txt`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  window.URL.revokeObjectURL(url)
-  
-  ElMessage.success('Order details downloaded successfully')
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `order-${orderId.value}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+
+    ElMessage.success('Order details downloaded successfully')
 }
+
 
 // 组件挂载时获取订单数据
 onMounted(() => {
-  fetchOrderData()
+    fetchOrderData()
 })
 </script>
 
 <style scoped>
 .payment-success {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background-color: #f5f5f5;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background-color: #f5f5f5;
 }
 
 .success-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.15);
-  padding: 40px;
-  max-width: 900px;
-  width: 100%;
-  border: 1px solid #e4e7ed;
-  border-bottom: 3px solid #e4e7ed;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.15);
+    padding: 40px;
+    max-width: 900px;
+    width: 100%;
+    border: 1px solid #e4e7ed;
+    border-bottom: 3px solid #e4e7ed;
 }
 
 .success-header {
-  text-align: center;
-  margin-bottom: 40px;
-  border-bottom: 1px solid #dcdfe6;
-  padding-bottom: 20px;
-
-  .order-id {
-    margin-top: 1.2rem;
-    font-size: 1.2rem;
-    color: #303133;
-
-    .save-reminder {
-      margin-top: 0.6rem;
-      font-size: 1rem;
-      color: #f56c6c;
-      font-weight: 500;
+    text-align: center;
+    margin-bottom: 40px;
+    border-bottom: 1px solid #dcdfe6;
+    padding-bottom: 20px;
+    .order-id {
+        margin-top: 1.2rem;
+        font-size: 1.2rem;
+        color: #303133;
+        .save-reminder {
+            margin-top: 0.6rem;
+            font-size: 1rem;
+            color: #f56c6c;
+            font-weight: 500;
+        }
     }
-  }
-
-  .order-id span {
-    font-weight: 600;
-    color: #303133;
-  }
+    .order-id span {
+        font-weight: 600;
+        color: #303133;
+    }
 }
 
 .success-icon {
-  font-size: 70px;
-  color: #67c23a;
-  margin-bottom: 24px;
+    font-size: 70px;
+    color: #67c23a;
+    margin-bottom: 24px;
 }
 
 h1 {
-  color: #303133;
-  font-size: 30px;
-  margin: 0 0 10px;
-  font-weight: 600;
+    color: #303133;
+    font-size: 30px;
+    margin: 0 0 10px;
+    font-weight: 600;
 }
 
 .subtitle {
-  color: #606266;
-  font-size: 18px;
-  margin: 0;
+    color: #606266;
+    font-size: 18px;
+    margin: 0;
 }
 
 .info-section {
-  margin: 40px 0;
-  padding: 20px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  border: 1px solid #dcdfe6;
+    margin: 40px 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    border: 1px solid #dcdfe6;
 }
 
 h2 {
-  color: #303133;
-  font-size: 22px;
-  margin: 0 0 24px;
-  font-weight: 600;
+    color: #303133;
+    font-size: 22px;
+    margin: 0 0 24px;
+    font-weight: 600;
 }
 
 h3 {
-  color: #303133;
-  font-size: 20px;
-  margin: 0 0 18px;
-  font-weight: 600;
+    color: #303133;
+    font-size: 20px;
+    margin: 0 0 18px;
+    font-weight: 600;
 }
 
 .order-details {
-  margin-bottom: 30px;
-  border: 1px solid #dcdfe6;
-  border-radius: 8px;
-  padding: 24px;
-  background-color: #f5f5f5;
+    margin-bottom: 30px;
+    border: 1px solid #dcdfe6;
+    border-radius: 8px;
+    padding: 24px;
+    background-color: #f5f5f5;
 }
 
 .train-info {
-  margin-bottom: 24px;
-  border: 1px solid #dcdfe6;
-  border-radius: 8px;
-  overflow: hidden;
-  background-color: white;
+    margin-bottom: 24px;
+    border: 1px solid #dcdfe6;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: white;
 }
 
 .train-header {
-  display: flex;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background-color: #f5f5f5;
-  border-bottom: 2px solid #dcdfe6;
+    display: flex;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background-color: #f5f5f5;
+    border-bottom: 2px solid #dcdfe6;
 }
 
 .train-tag {
-  font-weight: 600;
-  color: #303133;
-  font-size: 16px;
+    font-weight: 600;
+    color: #303133;
+    font-size: 16px;
 }
 
 .train-date {
-  color: #606266;
-  font-size: 15px;
+    color: #606266;
+    font-size: 15px;
 }
 
 .train-route {
-  display: flex;
-  padding: 24px;
+    display: flex;
+    padding: 24px;
 }
 
 .station {
-  flex: 1;
+    flex: 1;
 }
 
 .route-info {
-  flex: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .name {
-  font-weight: 600;
-  font-size: 18px;
-  margin-bottom: 6px;
-  color: #303133;
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 6px;
+    color: #303133;
 }
 
 .time {
-  color: #606266;
-  font-size: 16px;
+    color: #606266;
+    font-size: 16px;
 }
 
 .seat-type {
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 6px;
-  font-size: 16px;
+    font-weight: 600;
+    color: #303133;
+    margin-bottom: 6px;
+    font-size: 16px;
 }
 
 .duration {
-  color: #606266;
-  font-size: 15px;
+    color: #606266;
+    font-size: 15px;
 }
 
 .payment-info {
-  background-color: white;
-  border: 1px solid #dcdfe6;
-  border-radius: 8px;
-  padding: 24px;
-  margin-bottom: 24px;
+    background-color: white;
+    border: 1px solid #dcdfe6;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
 }
 
 .info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 24px;
-  margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 24px;
+    margin-top: 16px;
 }
 
 .transaction-id {
-  font-family: monospace;
-  font-size: 1rem;
-  color: #303133;
-  word-break: break-all;
-  font-weight: 500;
+    font-family: monospace;
+    font-size: 1rem;
+    color: #303133;
+    word-break: break-all;
+    font-weight: 500;
 }
 
 .passengers-info,
 .contact-info {
-  margin-top: 24px;
-  background-color: white;
-  border: 1px solid #dcdfe6;
-  border-radius: 8px;
-  padding: 24px;
-  margin-bottom: 24px;
+    margin-top: 24px;
+    background-color: white;
+    border: 1px solid #dcdfe6;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
 }
 
 .info-item {
-  display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
 }
 
 .info-item label {
-  font-size: 15px;
-  color: #606266;
-  margin-bottom: 6px;
-  font-weight: 500;
+    font-size: 15px;
+    color: #606266;
+    margin-bottom: 6px;
+    font-weight: 500;
 }
 
 .info-item div {
-  font-size: 16px;
-  color: #303133;
+    font-size: 16px;
+    color: #303133;
 }
 
 .status {
-  font-weight: 600;
+    font-weight: 600;
 }
 
 .status.success {
-  color: #67c23a;
-  font-size: 16px;
+    color: #67c23a;
+    font-size: 16px;
 }
 
 .loading-state {
-  padding: 24px;
+    padding: 24px;
 }
 
 .steps {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
 }
 
 .step {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  background-color: white;
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #dcdfe6;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #dcdfe6;
 }
 
 .step-number {
-  background: #303133;
-  color: white;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  flex-shrink: 0;
-  font-size: 16px;
+    background: #303133;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    flex-shrink: 0;
+    font-size: 16px;
 }
 
 .step-content {
-  flex: 1;
+    flex: 1;
 }
 
 .step-content h3 {
-  color: #303133;
-  font-size: 18px;
-  margin: 0 0 10px;
-  font-weight: 600;
+    color: #303133;
+    font-size: 18px;
+    margin: 0 0 10px;
+    font-weight: 600;
 }
 
 .step-content p {
-  color: #606266;
-  margin: 0;
-  line-height: 1.6;
-  font-size: 15px;
+    color: #606266;
+    margin: 0;
+    line-height: 1.6;
+    font-size: 15px;
 }
 
 .actions {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-  margin-top: 40px;
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 40px;
 }
 
 .contact-support {
-  text-align: center;
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #dcdfe6;
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #dcdfe6;
 }
 
 .contact-support p {
-  color: #606266;
-  margin: 0;
-  font-size: 15px;
+    color: #606266;
+    margin: 0;
+    font-size: 15px;
 }
 
 @media (max-width: 768px) {
-  .success-card {
-    padding: 24px;
-  }
-
-  .actions {
-    flex-direction: column;
-  }
-
-  .actions .el-button {
-    width: 100%;
-  }
+    .success-card {
+        padding: 24px;
+    }
+    .actions {
+        flex-direction: column;
+    }
+    .actions .el-button {
+        width: 100%;
+    }
 }
 </style>

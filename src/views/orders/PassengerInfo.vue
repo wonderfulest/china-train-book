@@ -80,6 +80,11 @@
     
                                 <div class="passenger-form-container">
                                     <el-form :model="passenger.info" label-position="top">
+                                      <div class="form-row">
+                                            <el-form-item label="Passport Name" class="form-item-full">
+                                                <el-input v-model="passenger.info.passportName" placeholder="Full name as shown on passport" />
+                                            </el-form-item>
+                                        </div>
                                         <div class="form-row">
                                             <el-form-item label="Passenger Type" class="form-item-type">
                                                 <el-radio-group v-model="passenger.info.passengerType">
@@ -88,13 +93,6 @@
                                                 </el-radio-group>
                                             </el-form-item>
                                         </div>
-    
-                                        <div class="form-row">
-                                            <el-form-item label="Passport Name" class="form-item-full">
-                                                <el-input v-model="passenger.info.passportName" placeholder="Full name as shown on passport" />
-                                            </el-form-item>
-                                        </div>
-    
                                         <div class="form-row">
                                             <el-form-item label="Gender" class="form-item-third">
                                                 <el-select v-model="passenger.info.gender" placeholder="Select">
@@ -108,7 +106,7 @@
                                             </el-form-item>
                                             <el-form-item label="Country of Passport" class="form-item-third">
                                                 <el-select v-model="passenger.info.country" placeholder="Select country" filterable>
-                                                    <el-option v-for="country in countries" :key="country.code" :label="country.name" :value="country.code" />
+                                                    <el-option v-for="country in countriesList" :key="country.code" :label="country.name" :value="country.code" />
                                                 </el-select>
                                             </el-form-item>
                                         </div>
@@ -181,7 +179,7 @@
                                 <div class="option-section">
                                     <h3>Upgrade to refundable booking (recommended)</h3>
                                     <p class="upgrade-info">
-                                        Upgrade your booking for {{ currencyStore.currencySymbol }} {{ Math.ceil(orderSummary.totalAmount * 0.1) }} and receive a FULL refund ({{ currencyStore.currencySymbol }} {{ orderSummary.totalAmount }} ) if you cannot attend and can evidence one of the
+                                        Upgrade your booking for {{ currencyStore.currencySymbol }} {{ orderSummary.seatRefundSum }} and receive a FULL refund ({{ currencyStore.currencySymbol }} {{ orderSummary.seatPriceSum }} ) if you cannot attend and can evidence one of the
                                         many reasons in our
                                         <el-link type="primary" href="#" @click.prevent>Terms and Conditions</el-link>, which you accept when you select a Refundable Booking.
                                         <el-link type="primary" href="#" @click.prevent>See more</el-link>.
@@ -189,7 +187,7 @@
                                     <el-radio-group v-model="refundableOption">
                                         <div class="radio-item-inline">
                                             <el-radio :value="'yes'">
-                                                Yes, Upgrade my booking. (+{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(9.26) }})
+                                                Yes, Upgrade my booking. (+{{ currencyStore.currencySymbol }} {{  orderSummary.seatRefundSum  }})
                                                 <el-tag size="small" type="danger" effect="light">recommended</el-tag>
                                             </el-radio>
                                             <el-radio :value="'no'">No, keep my book non-refundable.</el-radio>
@@ -244,19 +242,19 @@
                             <!-- 乘客类型分组 -->
                             <div v-for="(group, index) in passengerGroups" :key="index" class="price-detail-item">
                                 <div class="detail-label">{{ group.passengerType == PASSENGER_TYPE_ADULT ? 'Adult' : 'Child' }} x {{ group.count }}</div>
-                                <div class="detail-value">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(group.seatPrice) }}</div>
+                                <div class="detail-value">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(group.seatPrice) * group.count }}</div>
                             </div>
     
                             <!-- 服务费 -->
                             <div class="price-detail-item service-fee">
-                                <div class="detail-label">Service fee x {{ passengerGroups.length }}</div>
-                                <div class="detail-value">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(orderInfo.seatFee * passengerGroups.length) }}</div>
+                                <div class="detail-label">Service fee x {{ passengersList.length }}</div>
+                                <div class="detail-value">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(orderInfo.seatFee ) * passengersList.length }}</div>
                             </div>
     
                             <!-- 可退款选项费用 -->
                             <div v-if="refundableOption === 'yes'" class="price-detail-item refundable-fee">
                                 <div class="detail-label">Refundable booking x {{ passengerGroups.length }}</div>
-                                <!-- <div class="detail-value">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(50 || orderSummary.seatRefund) }}</div> -->
+                                <div class="detail-value">{{ currencyStore.currencySymbol }} {{ Math.ceil(orderSummary.seatPriceSum * 0.1)  }}</div>
                             </div>
                         </div>
     
@@ -359,6 +357,7 @@ import { useCurrencyStore } from "@/stores/currencyStore";
 import { useCityStore } from "@/stores/city";
 import { getOrderById, updateOrderPassengers } from "@/api/modules/orders";
 import { formatDuration, formatStation } from "@/utils/formatters";
+import { countries } from '@/config/countries'
 
 const route = useRoute();
 const router = useRouter();
@@ -583,24 +582,9 @@ function selectHistoricalPassenger(id, passengerIndex) {
     }
 }
 
-// 获取国家名称
-function getCountryName(code) {
-    const country = countries.value.find((c) => c.code === code);
-    return country ? country.name : code;
-}
-
-const passengerTypeOptions = [
-    { value: 1, label: "Adult" },
-    { value: 2, label: "Child" },
-];
-
-const passengerTypeMap = {
-    1: "Adult",
-    2: "Child",
-};
-
 const PASSENGER_TYPE_ADULT = 1;
 const PASSENGER_TYPE_CHILD = 2;
+
 // Contact information
 const contactInfo = ref({
     title: "Mr",
@@ -619,6 +603,9 @@ const agreeToTerms = ref(false);
 // 控制是否显示确认邮箱字段
 const showConfirmEmail = ref(false);
 
+// 使用导入的 countries
+const countriesList = ref(countries)
+
 // 根据乘客类型进行分组计算
 const passengerGroups = computed(() => {
     // 初始化计数器
@@ -631,7 +618,7 @@ const passengerGroups = computed(() => {
             groups[passengerType] = {
                 passengerType: passengerType,
                 count: 0,
-                seatPrice: passengerType === PASSENGER_TYPE_ADULT ? orderInfo.value.seatPrice : orderInfo.value.seatPrice * 0.6, // 成人和儿童的基础票价
+                seatPrice: passengerType === PASSENGER_TYPE_ADULT ? orderInfo.value.seatPrice : Math.ceil(orderInfo.value.seatPrice * 0.6), // 成人和儿童的基础票价
                 seatFee: orderInfo.value.seatFee, // 每位乘客的服务费
                 seatRefund: orderInfo.value.seatRefund, // 每位乘客的可退款选项费用
                 seatPriceTotal: 0,
@@ -649,44 +636,27 @@ const passengerGroups = computed(() => {
 
 // Order summary calculation
 const orderSummary = computed(() => {
-    console.log('groups', passengerGroups.value)
+    console.log('groups', passengerGroups.value, passengersList.value)
     // 所有乘客的票价总和
-    const seatPriceSum = currencyStore.convertPrice(passengerGroups.value.reduce((sum, group) => sum + group.seatPrice, 0));
+    const seatPriceSum = passengerGroups.value.reduce((sum, group) => sum + currencyStore.convertPrice(group.seatPrice) * group.count, 0);
 
     // 服务费总和（已经包含在每位乘客的价格中）
-    const seatFeeSum = currencyStore.convertPrice(passengerGroups.value.reduce((sum, group) => sum + group.seatFee * group.count, 0));
+    const seatFeeSum = passengerGroups.value.reduce((sum, group) => sum + currencyStore.convertPrice(group.seatFee) * group.count, 0);
 
-    // 可退款选项费用
-    // const seatRefund = currencyStore.convertPrice(group.seatPrice * 0.1);
-    const seatRefundSum = refundableOption.value === "yes" ? 50 * passengerGroups.value.length : 0;
+    // 可退款选项费用(10% of seatPriceSum)
+    const seatRefundSum = refundableOption.value === "yes" ? Math.ceil(0.1 * seatPriceSum) : 0;
 
     // 总金额
-    const totalAmount = seatPriceSum + seatFeeSum + seatRefundSum;
+    const totalAmount = seatPriceSum + seatFeeSum  + seatRefundSum;
 
     console.log('totalAmount', totalAmount, seatPriceSum, seatFeeSum, seatRefundSum)
     return {
         seatPriceSum,
         seatFeeSum,
-        // seatRefund,
         seatRefundSum,
         totalAmount,
     };
 });
-
-// Countries data for select dropdown
-const countries = ref([
-    { code: "USA", name: "United States" },
-    { code: "GBR", name: "United Kingdom" },
-    { code: "CAN", name: "Canada" },
-    { code: "AUS", name: "Australia" },
-    { code: "CHN", name: "China" },
-    { code: "JPN", name: "Japan" },
-    { code: "KOR", name: "South Korea" },
-    { code: "DEU", name: "Germany" },
-    { code: "FRA", name: "France" },
-    { code: "ITA", name: "Italy" },
-    // Add more countries as needed
-]);
 
 // Form validation rules
 const rules = {

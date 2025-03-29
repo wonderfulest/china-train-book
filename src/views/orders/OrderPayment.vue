@@ -5,7 +5,9 @@
         <div class="order-info">
           <div class="order-id">Order ID: <span>{{ orderId }}</span></div>
           <div class="order-status">
-            Order Status: <el-tag type="warning">Pending Payment</el-tag>
+            Order Status: <el-tag type="warning" v-if="orderData?.paymentStatus == '0'">Pending Payment</el-tag>
+            <el-tag type="success" v-else-if="orderData?.paymentStatus == '1'">Paid</el-tag>
+            <el-tag type="danger" v-else>Failed</el-tag>
           </div>
         </div>
       </div>
@@ -47,7 +49,6 @@
                   <th>Name</th>
                   <th>Passport Number</th>
                   <th>Country</th>
-                  <th class="text-right">Price</th>
                 </tr>
               </thead>
               <tbody>
@@ -56,7 +57,6 @@
                   <td>{{ passenger.passportName }}</td>
                   <td>{{ passenger.passportNumber }}</td>
                   <td>{{ passenger.country }}</td>
-                  <td class="text-right">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(passenger.priceTotal) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -92,11 +92,17 @@
               <div class="detail-label">
                 {{ group.type === 1 ? 'Adult' : 'Child' }} x {{ group.count }}
               </div>
-              <div class="detail-value">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(group.priceTotal) }}</div>
+              <div class="detail-value">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(group.passengerPrice) }}</div>
+            </div>
+
+            <!-- 手续费明细 -->
+            <div class="price-detail-item refundable-fee">
+              <div class="detail-label">Service Fee x {{ orderData.passengers.length }}</div>
+              <div class="detail-value">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(orderData.seatFee) * orderData.passengers.length }}</div>
             </div>
             
             <!-- 可退款选项费用 -->
-            <div v-if="orderData.refundableOption === 'yes'" class="price-detail-item refundable-fee">
+            <div v-if="orderData.contact.refundableOption === 'yes'" class="price-detail-item refundable-fee">
               <div class="detail-label">Refundable booking</div>
               <div class="detail-value">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(9.26) }}</div>
             </div>
@@ -104,7 +110,7 @@
             <!-- 总金额 -->
             <div class="price-detail-item total">
               <div class="detail-label">Total Price:</div>
-              <div class="detail-value total-value">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(orderData.priceAmount) }}</div>
+              <div class="detail-value total-value">{{ currencyStore.currencySymbol }} {{ totalAmount }}</div>
             </div>
           </div>
         </div>
@@ -117,8 +123,8 @@
             <div 
               class="payment-option" 
               :class="{ selected: selectedPaymentMethod === 'paypal' }"
-              @click="selectPaymentMethod('paypal')"
             >
+            <!-- @click="selectPaymentMethod('paypal')" -->
               <div class="option-logo">
                 <img src="@/assets/payments/paypal.png" alt="PayPal" />
               </div>
@@ -138,7 +144,7 @@
             <!-- PayPal 支付按钮 -->
             <div v-if="selectedPaymentMethod === 'paypal'">
               <div class="payment-amount-display">
-                <p>Total amount: {{ formatUSDPrice(orderData.priceAmount) }}</p>
+                <p>Total amount: {{ currencyStore.currencySymbol }} {{ totalAmount }}</p>
                 <p class="payment-note">Payment will be processed in USD</p>
               </div>
               <div id="paypal-button-container" class="paypal-container"></div>
@@ -179,6 +185,23 @@ const router = useRouter()
 const bookingStore = useBookingStore()
 const currencyStore = useCurrencyStore()
 
+const totalAmount = computed(() => {
+  const seatFee = currencyStore.convertPrice(orderData.value.seatFee) * orderData.value.passengers.length
+  let seatPrice = 0;
+  orderData.value.passengers.forEach(passenger => {
+    if (passenger.passengerType === 1) {
+      seatPrice += currencyStore.convertPrice(passenger.passengerPrice)
+    } else {
+      seatPrice += currencyStore.convertPrice(passenger.passengerPrice * 0.6)
+    }
+  })
+  let refundableFee = 0;
+  if (orderData.value.contact.refundableOption === 'yes') {
+    refundableFee = Math.ceil(seatPrice * 0.1)
+  }
+  return seatFee + seatPrice + refundableFee
+})
+
 // 订单ID
 const orderId = ref(route.params.orderId)
 
@@ -215,24 +238,6 @@ const fetchExchangeRates = async () => {
   }
 };
 
-// 专门用于PayPal的价格转换函数（转换为美元）
-const convertPriceToUSD = (cnyPrice) => {
-  if (!exchangeRates.value || !cnyPrice) return 0;
-  const rate = exchangeRates.value['USD'];
-  if (!rate) return 0;
-
-  const convertedPrice = parseFloat(cnyPrice) * rate;
-  // PayPal要求金额必须有两位小数
-  return parseFloat(convertedPrice.toFixed(2));
-};
-
-// 格式化美元价格（专用于PayPal显示）
-const formatUSDPrice = (cnyPrice) => {
-  const usdPrice = convertPriceToUSD(cnyPrice);
-  return `${currencyStore.currencySymbol} ${Math.round(usdPrice)}`;
-};
-
-
 // 计算乘客分组
 const passengerGroups = computed(() => {
   if (!orderData.value || !orderData.value.passengers) return [];
@@ -247,14 +252,15 @@ const passengerGroups = computed(() => {
       groups[type] = {
         type,
         count: 0,
-        priceTotal: 0
+        passengerPrice:type === 1 ? orderData.value.seatPrice : orderData.value.seatPrice * 0.6,
+        passengerFee: orderData.value.seatFee,
       };
     }
     
     groups[type].count += 1;
-    groups[type].priceTotal += passenger.priceTotal;
   });
   
+  console.log('groups', groups)
   return Object.values(groups);
 });
 
@@ -273,36 +279,17 @@ function formatDisplayDate(dateString) {
   return date.toLocaleDateString('en-US', options);
 }
 
-// 计算行程时长
-function calculateDuration(departTime, arriveTime) {
-  if (!departTime || !arriveTime) return '';
-  
-  let [departHours, departMinutes] = departTime.split(':').map(Number);
-  let [arriveHours, arriveMinutes] = arriveTime.split(':').map(Number);
-  
-  // 处理跨天的情况
-  if ((arriveHours < departHours) || (arriveHours === departHours && arriveMinutes < departMinutes)) {
-    arriveHours += 24;
-  }
-  
-  const totalMinutes = (arriveHours - departHours) * 60 + (arriveMinutes - departMinutes);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  
-  return `${hours}h ${minutes}m`;
-}
-
 // 获取订单数据
 async function fetchOrderData() {
   if (!orderId.value) {
-    ElMessage.error('Invalid order ID');
+    ElMessage.error('无效的订单ID');
     router.push('/');
     return;
   }
   
   const loading = ElLoading.service({
     lock: true,
-    text: 'Loading order data...',
+    text: '加载订单数据...',
     background: 'rgba(0, 0, 0, 0.7)'
   });
   
@@ -310,15 +297,22 @@ async function fetchOrderData() {
     const response = await getOrderById(orderId.value);
     orderData.value = response.data;
     
+    // 检查订单支付状态
+    if (orderData.value?.payment?.paymentStatus === 1) {
+      // 如果订单已支付，直接跳转到支付成功页面
+      router.push(`/trains/order/${orderId.value}/success`);
+      return;
+    }
+    
     // 如果没有获取到有效数据
     if (!orderData.value) {
-      ElMessage.error('Failed to load order data');
-      // router.push('/');
+      ElMessage.error('加载订单数据失败');
+      router.push('/');
     }
   } catch (error) {
-    console.error('Error fetching order data:', error);
-    ElMessage.error('Failed to load order data');
-    // router.push('/');
+    console.error('获取订单数据失败:', error);
+    ElMessage.error('加载订单数据失败');
+    router.push('/');
   } finally {
     loading.close();
   }
@@ -338,7 +332,7 @@ function initPayPalButton() {
   window.paypal.Buttons({
     createOrder: (data, actions) => {
       // 将价格转换为美元
-      const usdPrice = convertPriceToUSD(orderData.value.priceAmount);
+      const usdPrice = totalAmount.value
       console.log('Creating PayPal order', orderData.value, 'USD price:', usdPrice);
       
       return actions.order.create({
@@ -392,9 +386,6 @@ const checkPayPalSDK = () => {
     setTimeout(checkPayPalSDK, 500);
   }
 };
-
-
-
 // 组件挂载时执行
 onMounted(async () => {
   // 获取汇率数据
@@ -693,8 +684,6 @@ h3 {
   color: #909399;
   margin-top: 5px;
 }
-
-
 
 .payment-amount-display {
   text-align: center;
