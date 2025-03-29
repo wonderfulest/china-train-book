@@ -159,11 +159,13 @@ import { useRouter, useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElLoading, ElTable, ElTableColumn } from 'element-plus'
 import { getOrderById } from '@/api/modules/orders'
+import { useCurrencyStore } from '@/stores/currencyStore'
 
 const router = useRouter()
 const route = useRoute()
 const orderId = ref(route.params.orderId)
 const orderData = ref(null)
+const currencyStore = useCurrencyStore()
 
 // 获取订单数据
 async function fetchOrderData() {

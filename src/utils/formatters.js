@@ -30,3 +30,24 @@ export const formatStation = (station, cities) => {
   }
   return station;
 };
+
+
+// 获取火车类型
+function getTrainType(trainNo) {
+  if (!trainNo) return '';
+  
+  const prefix = trainNo.charAt(0).toUpperCase();
+  
+  switch(prefix) {
+    case 'G': return 'High-Speed (高铁)';
+    case 'D': return 'Electric Multiple Unit (动车)';
+    case 'C': return 'Intercity (城际)';
+    case 'Z': return 'Direct Express (直达)';
+    case 'T': return 'Express (特快)';
+    case 'K': return 'Fast (快速)';
+    case 'Y': return 'Tourist (旅游)';
+    case 'L': return 'Temporary (临时)';
+    case 'S': return 'Suburban (市郊)';
+    default: return 'Regular Train';
+  }
+}

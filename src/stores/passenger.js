@@ -8,20 +8,23 @@ export const usePassengerStore = defineStore('passenger', {
 
   actions: {
     addPassenger(passenger) {
+      // 检查是否已存在于乘客列表中
+      const exists = this.passengers.some(p => p.passportNumber === passenger.passportNumber)
+      if (exists) {
+        // 如果已存在，不添加, 更新
+        console.log("Passenger already exists, updating...")
+        this.updatePassenger(this.passengers.findIndex(p => p.passportNumber === passenger.passportNumber), passenger)
+        return
+      }
+      
       this.passengers.push({
         id: this.passengers.length + 1,
         ...passenger
       })
-      // 检查是否已存在于历史记录中
-      const exists = this.historicalPassengers.some(
-        p => p.passportNumber === passenger.passportNumber
-      )
-      if (!exists) {
-        this.historicalPassengers.push({
-          id: this.historicalPassengers.length + 1,
-          ...passenger
-        })
-      }
+      this.historicalPassengers.push({
+        id: this.historicalPassengers.length + 1,
+        ...passenger
+      })
     },
 
     updatePassenger(index, passenger) {

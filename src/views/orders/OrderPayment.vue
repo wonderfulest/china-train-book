@@ -15,23 +15,23 @@
         <div class="train-info">
           <div class="train-header">
             <div class="train-tag">Train {{ orderData.trainNo }}</div>
-            <div class="train-date">{{ formatDisplayDate(orderData.date) }}</div>
+            <div class="train-date">{{ formatDisplayDate(orderData.fromDate) }}</div>
           </div>
 
           <div class="train-route">
             <div class="station">
-              <div class="name">{{ orderData.from }}</div>
-              <div class="time">{{ orderData.departTime }}</div>
+              <div class="name">{{ formatStation(orderData.fromStation, allCities) }}</div>
+              <div class="time">{{ orderData.fromTime }}</div>
             </div>
             <div class="route-info">
               <div class="seat-type">{{ orderData.seatType }}</div>
-              <div class="duration" v-if="orderData.departTime && orderData.arriveTime">
-                {{ calculateDuration(orderData.departTime, orderData.arriveTime) }}
+              <div class="duration" v-if="orderData.fromTime && orderData.toTime">
+                {{ formatDuration(orderData.runTime) }}
               </div>
             </div>
             <div class="station">
-              <div class="name">{{ orderData.to }}</div>
-              <div class="time">{{ orderData.arriveTime }}</div>
+              <div class="name">{{ formatStation(orderData.toStation, allCities) }}</div>
+              <div class="time">{{ orderData.toTime }}</div>
             </div>
           </div>
         </div>
@@ -56,7 +56,7 @@
                   <td>{{ passenger.passportName }}</td>
                   <td>{{ passenger.passportNumber }}</td>
                   <td>{{ passenger.country }}</td>
-                  <td class="text-right">{{ formatPrice(passenger.priceTotal) }}</td>
+                  <td class="text-right">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(passenger.priceTotal) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -92,19 +92,19 @@
               <div class="detail-label">
                 {{ group.type === 1 ? 'Adult' : 'Child' }} x {{ group.count }}
               </div>
-              <div class="detail-value">{{ formatPrice(group.priceTotal) }}</div>
+              <div class="detail-value">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(group.priceTotal) }}</div>
             </div>
             
             <!-- 可退款选项费用 -->
             <div v-if="orderData.refundableOption === 'yes'" class="price-detail-item refundable-fee">
               <div class="detail-label">Refundable booking</div>
-              <div class="detail-value">{{ formatPrice(9.26) }}</div>
+              <div class="detail-value">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(9.26) }}</div>
             </div>
             
             <!-- 总金额 -->
             <div class="price-detail-item total">
               <div class="detail-label">Total Price:</div>
-              <div class="detail-value total-value">{{ formatPrice(orderData.priceAmount) }}</div>
+              <div class="detail-value total-value">{{ currencyStore.currencySymbol }} {{ currencyStore.convertPrice(orderData.priceAmount) }}</div>
             </div>
           </div>
         </div>
@@ -130,60 +130,7 @@
                 <el-icon><Check /></el-icon>
               </div>
             </div>
-
-            <!-- 信用卡支付选项 -->
-            <!-- <div 
-              class="payment-option" 
-              :class="{ selected: selectedPaymentMethod === 'creditcard' }"
-              @click="selectPaymentMethod('creditcard')"
-            >
-              <div class="option-logo">
-                <img src="@/assets/payments/credit-card.png" alt="Credit Card" />
-              </div>
-              <div class="option-details">
-                <div class="option-name">Credit Card</div>
-                <div class="option-description">Visa, Mastercard, American Express</div>
-              </div>
-              <div class="option-check" v-if="selectedPaymentMethod === 'creditcard'">
-                <el-icon><Check /></el-icon>
-              </div>
-            </div> -->
-
-            <!-- 支付宝选项 -->
-            <!-- <div 
-              class="payment-option" 
-              :class="{ selected: selectedPaymentMethod === 'alipay' }"
-              @click="selectPaymentMethod('alipay')"
-            >
-              <div class="option-logo">
-                <img src="@/assets/payments/alipay.png" alt="Alipay" />
-              </div>
-              <div class="option-details">
-                <div class="option-name">Alipay</div>
-                <div class="option-description">Pay with Alipay</div>
-              </div>
-              <div class="option-check" v-if="selectedPaymentMethod === 'alipay'">
-                <el-icon><Check /></el-icon>
-              </div>
-            </div> -->
-
-            <!-- 微信支付选项 -->
-            <!-- <div 
-              class="payment-option" 
-              :class="{ selected: selectedPaymentMethod === 'wechatpay' }"
-              @click="selectPaymentMethod('wechatpay')"
-            >
-              <div class="option-logo">
-                <img src="@/assets/payments/wechatpay.png" alt="WeChat Pay" />
-              </div>
-              <div class="option-details">
-                <div class="option-name">WeChat Pay</div>
-                <div class="option-description">Pay with WeChat Pay</div>
-              </div>
-              <div class="option-check" v-if="selectedPaymentMethod === 'wechatpay'">
-                <el-icon><Check /></el-icon>
-              </div>
-            </div>-->
+         
           </div> 
 
           <!-- 支付按钮区域 -->
@@ -197,8 +144,6 @@
               <div id="paypal-button-container" class="paypal-container"></div>
             </div>
             
-
-
             <!-- 安全支付提示 -->
             <div class="secure-payment-note">
               <el-icon><Lock /></el-icon> Secure payment processed by PayPal
@@ -217,13 +162,18 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElLoading } from 'element-plus'
 import { Check, Lock } from '@element-plus/icons-vue'
 import { getOrderById, paymentCallback } from '@/api/modules/orders'
 import { useBookingStore } from '@/stores/bookingProcess'
 import { useCurrencyStore } from '@/stores/currencyStore'
+import { formatDuration, formatStation } from "@/utils/formatters";
+import { useCityStore } from "@/stores/city";
 
+const cityStore = useCityStore();
+const { allCities } = storeToRefs(cityStore);
 const route = useRoute()
 const router = useRouter()
 const bookingStore = useBookingStore()
@@ -265,17 +215,6 @@ const fetchExchangeRates = async () => {
   }
 };
 
-// 转换价格从人民币到当前选择的货币
-const convertPrice = (cnyPrice) => {
-  if (!exchangeRates.value || !cnyPrice) return 0;
-  const targetCurrency = currencyStore.currency;
-  const rate = exchangeRates.value[targetCurrency];
-  if (!rate) return 0;
-
-  const convertedPrice = parseFloat(cnyPrice) * rate;
-  return Math.ceil(convertedPrice); // 向上取整到整数
-};
-
 // 专门用于PayPal的价格转换函数（转换为美元）
 const convertPriceToUSD = (cnyPrice) => {
   if (!exchangeRates.value || !cnyPrice) return 0;
@@ -293,12 +232,6 @@ const formatUSDPrice = (cnyPrice) => {
   return `${currencyStore.currencySymbol} ${Math.round(usdPrice)}`;
 };
 
-// 格式化价格
-function formatPrice(price) {
-  // 先转换价格，再添加货币符号
-  const convertedPrice = convertPrice(price);
-  return `${currencyStore.currencySymbol}${convertedPrice}`;
-}
 
 // 计算乘客分组
 const passengerGroups = computed(() => {

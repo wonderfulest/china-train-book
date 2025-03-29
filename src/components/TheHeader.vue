@@ -31,13 +31,13 @@
           <template v-else>
             <el-menu-item index="/">HOME</el-menu-item>
             
-            <el-sub-menu index="/trains">
+            <!-- <el-sub-menu index="/trains">
               <template #title>TRAINS</template>
               <el-menu-item index="/trains">China Mainland Trains</el-menu-item>
               <el-menu-item index="/hongkongtrains">Hong Kong Trains</el-menu-item>
               <el-menu-item index="/internationaltrains">International Trains</el-menu-item>
               <el-menu-item index="/terms-conditions">Terms and Conditions</el-menu-item>
-            </el-sub-menu>
+            </el-sub-menu> -->
 
             <!-- <el-menu-item index="/flights">FLIGHTS</el-menu-item> -->
             <!-- <el-menu-item index="/china-esim">CHINA ESIM</el-menu-item> -->
@@ -131,7 +131,7 @@ const currency = computed({
   right: 0;
   z-index: 100;
   background: var(--bg-color-dark);
-  height: 60px;
+  height: 64px;
   box-shadow: var(--shadow-header);
 }
 

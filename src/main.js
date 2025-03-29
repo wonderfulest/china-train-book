@@ -11,7 +11,6 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import { Icon } from '@iconify/vue'
 import { inject } from '@vercel/analytics'
 import { initGoogleAnalytics, trackPageView } from './utils/analytics'
-import './style.css'
 
 // Initialize analytics
 inject()

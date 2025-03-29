@@ -121,9 +121,6 @@ const emit = defineEmits(['search'])
 
 const cityStore = useCityStore()
 const { allCities, hotCities } = storeToRefs(cityStore)
-
-// 本地城市列表
-const cities = computed(() => allCities.value)
 const localHotCities = computed(() => hotCities.value)
 
 const from = ref('')
@@ -255,7 +252,7 @@ const querySearch = (queryString, cb) => {
 
     // Group other cities by pinyin first letter
     const groupedCities = {}
-    cities.value.forEach(city => {
+    allCities.value.forEach(city => {
       const firstLetter = city.pingYin[0].toUpperCase()
       if (!groupedCities[firstLetter]) {
         groupedCities[firstLetter] = []
@@ -281,7 +278,7 @@ const querySearch = (queryString, cb) => {
     cb(suggestions)
   } else {
     const searchStr = queryString.toLowerCase()
-    const results = cities.value.filter(city => {
+    const results = allCities.value.filter(city => {
       return city.name.toLowerCase().includes(searchStr) ||
              city.pingYin.toLowerCase().includes(searchStr) ||
              city.pingYinShort.toLowerCase().includes(searchStr)
@@ -329,7 +326,7 @@ const querySearch = (queryString, cb) => {
 }
 
 const handleFocus = async () => {
-  if (cities.value.length === 0) {
+  if (allCities.value.length === 0) {
     try {
       await cityStore.initializeCities()
     } catch (error) {
