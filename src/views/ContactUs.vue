@@ -64,12 +64,12 @@
       </div>
 
       <!-- Call Us Section -->
-      <div class="contact-section">
+      <!-- <div class="contact-section">
         <h2>CALL US ON</h2>
         <p class="phone-numbers">
           +86 (0) 559 231.9660, (010) 8575 6061
         </p>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>

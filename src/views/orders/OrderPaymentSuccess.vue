@@ -28,7 +28,7 @@
           <div class="train-route">
             <div class="station departure">
               <div class="name">
-                {{ formatStation(orderData.fromStation, allCities.value) }}
+                {{ formatStation(orderData.fromStation, allCities) }}
               </div>
               <div class="time">{{ orderData.fromTime || "N/A" }}</div>
             </div>
@@ -47,7 +47,7 @@
 
             <div class="station arrival">
               <div class="name">
-                {{ formatStation(orderData.toStation, allCities.value) }}
+                {{ formatStation(orderData.toStation, allCities) }}
               </div>
               <div class="time">{{ orderData.toTime || "N/A" }}</div>
             </div>
@@ -432,6 +432,7 @@ For any assistance, contact support@chinatrainstickets.com
 
 // 组件挂载时获取订单数据
 onMounted(async () => {
+  console.log("组件挂载时获取订单数据");
   // 初始化城市数据
   await cityStore.initializeCityData();
 

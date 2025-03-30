@@ -4,19 +4,19 @@ import {getExchangeRate} from '@/api/modules/exchange'
 // 定义所有支持的货币及其符号
 const CURRENCY_SYMBOLS = {
   USD: '$',
-  CNY: '¥',
-  EUR: '€',
-  SGD: 'S$',
-  JPY: '¥'
+  // CNY: '¥',
+  // EUR: '€',
+  // SGD: 'S$',
+  // JPY: '¥'
 }
 
 // 汇率数据
 const exchangeRates = {
   CNY: 1,
   USD: 0.14,
-  EUR: 0.13,
-  SGD: 0.19,
-  JPY: 20.85,
+  // EUR: 0.13,
+  // SGD: 0.19,
+  // JPY: 20.85,
 };
 
 export const useCurrencyStore = defineStore('currency', {

@@ -199,8 +199,7 @@ const totalAmount = computed(() => {
   if (orderData.value.contact.refundableOption === 'yes') {
     refundableFee = Math.ceil(seatPrice * 0.1)
   }
-  return 1
-  // return seatFee + seatPrice + refundableFee
+  return seatFee + seatPrice + refundableFee
 })
 
 // 订单ID
@@ -222,9 +221,9 @@ const fetchExchangeRates = async () => {
     exchangeRates.value = {
       CNY: 1, // 人民币
       USD: 0.14, // 美元
-      EUR: 0.13, // 欧元
-      SGD: 0.19, // 新加坡元
-      JPY: 20.85, // 日元
+      // EUR: 0.13, // 欧元
+      // SGD: 0.19, // 新加坡元
+      // JPY: 20.85, // 日元
     };
   } catch (error) {
     console.error("获取汇率失败:", error);
@@ -232,9 +231,9 @@ const fetchExchangeRates = async () => {
     exchangeRates.value = {
       CNY: 1,
       USD: 0.14,
-      EUR: 0.13,
-      SGD: 0.19,
-      JPY: 20.85,
+      // EUR: 0.13,
+      // SGD: 0.19,
+      // JPY: 20.85,
     };
   }
 };
