@@ -1,6 +1,6 @@
 // PayPal 配置
 export const PAYPAL_CONFIG = {
-  clientId: import.meta.env.PAYPAL_CLIENT_ID,
+  clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID,
   currency: 'USD'
 }
 
