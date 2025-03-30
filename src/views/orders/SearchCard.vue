@@ -201,6 +201,7 @@ const handleSearch = async () => {
         date: date.value
       })
 
+      console.log("response.data.uuid", response.data.uuid)
       // 跳转到时刻表页面
       router.push(`/trains/order/${response.data.uuid}/timetable`)
     } else {

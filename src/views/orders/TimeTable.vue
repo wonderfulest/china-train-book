@@ -619,6 +619,7 @@ const submitTrainSeat = async (train, seat) => {
 };
 
 const handleSearchCardSubmit = (searchParams) => {
+  console.log("searchParams", searchParams)
   fromStation.value = searchParams.from;
   toStation.value = searchParams.to;
   date.value = searchParams.date;

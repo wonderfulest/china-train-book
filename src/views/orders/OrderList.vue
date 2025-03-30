@@ -40,21 +40,21 @@
           <div class="train-order">
             <div class="train-header">
               <div class="train-tag">Train {{ bookingData.trainNo || 'N/A' }}</div>
-              <div class="train-date">{{ formatDate(bookingData.date) }}</div>
+              <div class="train-date">{{ formatDisplayDate(bookingData.fromDate) }}</div>
             </div>
-
             <div class="train-route">
+   
               <div class="station">
-                <div class="name">{{ getStationName(bookingData.from) }}</div>
-                <div class="time">{{ formatTime(bookingData.departTime) || 'N/A' }}</div>
+                <div class="name">{{ formatStation(bookingData.fromStation, allCities) }}</div>
+                <div class="time">{{ bookingData.fromTime || 'N/A' }}</div>
               </div>
               <div class="route-info">
                 <div class="standing">{{ bookingData.seatType || 'Standard Seat' }}</div>
-                <div class="duration">{{ calculateDuration(bookingData.departTime, bookingData.arriveTime) || 'N/A' }}</div>
+                <div class="duration">{{ bookingData.runTime }}</div>
               </div>
               <div class="station">
-                <div class="name">{{ getStationName(bookingData.to) }}</div>
-                <div class="time">{{ formatTime(bookingData.arriveTime) || 'N/A' }}</div>
+                <div class="name">{{ formatStation(bookingData.toStation, allCities) }}</div>
+                <div class="time">{{ bookingData.toTime || 'N/A' }}</div>
               </div>
             </div>
 
@@ -66,7 +66,6 @@
                     <th>Name</th>
                     <th>Passport Number</th>
                     <th>Country</th>
-                    <th class="text-right">Price</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -75,7 +74,6 @@
                     <td>{{ passenger.passportName }}</td>
                     <td>{{ passenger.passportNumber }}</td>
                     <td>{{ passenger.country }}</td>
-                    <td class="text-right">{{ formatPrice(passenger.passengerPriceTotal) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -101,7 +99,7 @@
           </div>
         </div>
 
-        <div class="price-summary">
+        <!-- <div class="price-summary">
           <div class="price-item">
             <span>Ticket Price:</span>
             <span>{{ formatPrice(getTotalTicketPrice(bookingData)) }}</span>
@@ -114,7 +112,12 @@
             <span>Total Amount:</span>
             <span>{{ formatPrice(bookingData.priceAmount) }}</span>
           </div>
-        </div>
+          <div class="price-actions">
+            <el-button type="primary" @click="downloadOrderDetails(bookingData)">
+              <el-icon><Download /></el-icon>Download Order Details
+            </el-button>
+          </div>
+        </div> -->
       </div>
     </div>
 
@@ -126,17 +129,21 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getOrders } from '@/api/modules/orders'
 import { useRoute, useRouter } from 'vue-router'
 import { useCurrencyStore } from '@/stores/currencyStore'
 import { storeToRefs } from 'pinia'
+import { formatDuration, formatStation } from "@/utils/formatters";
+import { useCityStore } from "@/stores/city";
 
 const route = useRoute()
 const router = useRouter()
 const currencyStore = useCurrencyStore()
 const { currency, currencySymbol } = storeToRefs(currencyStore)
+const cityStore = useCityStore();
+const { allCities } = storeToRefs(cityStore);
 
 const searchForm = ref({
   searchType: 'bookingId',
@@ -144,19 +151,20 @@ const searchForm = ref({
   email: ''
 })
 
-// 站点代码到站点名称的映射
-const stationMap = {
-  'BJP': 'Beijing',
-  'TJP': 'Tianjin',
-  'SHH': 'Shanghai',
-  'GZQ': 'Guangzhou',
-  'SZQ': 'Shenzhen',
-  'CDW': 'Chengdu',
-  'CSQ': 'Changsha',
-  'HZH': 'Hangzhou',
-  'NJH': 'Nanjing',
-  'WHN': 'Wuhan',
-  'XAY': 'Xi\'an'
+
+// 格式化显示日期
+function formatDisplayDate(dateString) {
+  if (!dateString) return "";
+
+  const date = new Date(dateString);
+  const options = {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    weekday: "short",
+  };
+
+  return date.toLocaleDateString("en-US", options);
 }
 
 const loading = ref(false)
@@ -164,7 +172,10 @@ const searched = ref(false)
 const bookingList = ref([])
 
 // 在组件挂载时检查 URL 参数
-onMounted(() => {
+onMounted(async () => {
+  // 初始化城市数据
+  await cityStore.initializeCityData();
+  
   // 从 URL 参数中获取 bookingId 或 email
   const urlBookingId = route.query.bookingId
   const urlEmail = route.query.email
@@ -243,10 +254,18 @@ const searchBooking = async () => {
   }
 }
 
-const formatDate = (datetime) => {
-  if (!datetime) return ''
-  const date = new Date(datetime)
-  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  
+  const date = new Date(dateString);
+  const options = { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric',
+    weekday: 'short'
+  };
+  
+  return date.toLocaleDateString('en-US', options);
 }
 
 const formatTime = (datetime) => {
@@ -256,13 +275,21 @@ const formatTime = (datetime) => {
 }
 
 const calculateDuration = (departTime, arriveTime) => {
-  if (!departTime || !arriveTime) return ''
-  const start = new Date(departTime)
-  const end = new Date(arriveTime)
-  const diff = end - start
-  const hours = Math.floor(diff / (1000 * 60 * 60))
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-  return `${hours}h ${minutes}m`
+  if (!departTime || !arriveTime) return '';
+  
+  let [departHours, departMinutes] = departTime.split(':').map(Number);
+  let [arriveHours, arriveMinutes] = arriveTime.split(':').map(Number);
+  
+  // 处理跨天的情况
+  if ((arriveHours < departHours) || (arriveHours === departHours && arriveMinutes < departMinutes)) {
+    arriveHours += 24;
+  }
+  
+  const totalMinutes = (arriveHours - departHours) * 60 + (arriveMinutes - departMinutes);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  
+  return `${hours}h ${minutes}m`;
 }
 
 const formatPrice = (price) => {
@@ -322,11 +349,6 @@ const getPaymentStatusType = (status) => {
   return typeMap[status] || 'info'
 }
 
-// 获取站点名称
-const getStationName = (code) => {
-  return stationMap[code] || code
-}
-
 // 计算所有乘客的票价总和
 const getTotalTicketPrice = (order) => {
   if (!order.passengers || order.passengers.length === 0) return 0
@@ -338,6 +360,56 @@ const getTotalServiceFee = (order) => {
   if (!order.passengers || order.passengers.length === 0) return 0
   return order.passengers.reduce((sum, passenger) => sum + passenger.fee, 0)
 }
+
+const downloadOrderDetails = (bookingData) => {
+  const now = new Date().toLocaleString();
+  let passengersInfo = "";
+
+  if (bookingData.passengers && bookingData.passengers.length > 0) {
+    passengersInfo = "\nPassengers:\n";
+    bookingData.passengers.forEach((passenger, index) => {
+      passengersInfo += `${index + 1}. ${passenger.passportName} (${getPassengerType(passenger.passengerType)}) - Passport: ${passenger.passportNumber}\n`;
+    });
+  }
+
+  const content = `China Train Tickets - Order Details
+
+Order ID: ${bookingData.orderId}
+Date: ${now}
+Train: ${bookingData.trainNo || "N/A"}
+From: ${formatStation(bookingData.from, allCities.value)}
+To: ${formatStation(bookingData.to, allCities.value)}
+Departure: ${bookingData.departTime || "N/A"}
+Arrival: ${bookingData.arriveTime || "N/A"}
+Seat Type: ${bookingData.seatType || "Standard Seat"}
+Amount Paid: ${formatPrice(bookingData.priceAmount)}
+${passengersInfo}
+Payment Method: ${bookingData.payment ? capitalizeFirstLetter(bookingData.payment.paymentMethod) : "PayPal"}
+Payment ID: ${bookingData.payment ? bookingData.payment.paymentId : "N/A"}
+Payment Status: ${getPaymentStatusText(bookingData.paymentStatus)}
+
+Please keep this information safe for future reference.
+For any assistance, contact support@chinatrainstickets.com
+`;
+
+  const blob = new Blob([content], { type: "text/plain" });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `order-${bookingData.orderId}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+
+  ElMessage.success("Order details downloaded successfully");
+};
+
+// 首字母大写
+const capitalizeFirstLetter = (string) => {
+  if (!string) return "";
+  return string.charAt(0).toUpperCase() + string.slice(1);
+};
 </script>
 
 <style scoped>
@@ -546,6 +618,11 @@ const getTotalServiceFee = (order) => {
   font-weight: 600;
   color: #303133;
   font-size: 18px;
+}
+
+.price-actions {
+  margin-top: 14px;
+  text-align: right;
 }
 
 .no-results {
