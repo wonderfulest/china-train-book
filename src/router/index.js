@@ -82,45 +82,50 @@ const routes = [
     component: ContactUs
   },
   {
-    path: '/category/travel-guide',
-    name: 'TravelGuide',
-    component: TravelGuide
+    path: '/faq',
+    name: 'FAQ',
+    component: () => import('@/views/FAQ.vue')
   },
-  {
-    path: '/terms-conditions',
-    name: 'TermsConditions',
-    component: TermsConditions
-  },
-  {
-    path: '/trains',
-    name: 'ChinaMainlandTrains',
-    component: ChinaMainlandTrains
-  },
-  {
-    path: '/hongkongtrains',
-    name: 'HongKongTrains',
-    component: HongKongTrains
-  },
-  {
-    path: '/internationaltrains',
-    name: 'InternationalTrains',
-    component: InternationalTrains
-  },
-  {
-    path: '/flights',
-    name: 'Flights',
-    component: Flights
-  },
-  {
-    path: '/category/china_train_guide',
-    name: 'ChinaTrainGuide',
-    component: ChinaTrainGuide
-  },
-  {
-    path: '/category/booking-guide',
-    name: 'BookingGuide',
-    component: BookingGuide
-  },
+  // {
+  //   path: '/category/travel-guide',
+  //   name: 'TravelGuide',
+  //   component: TravelGuide
+  // },
+  // {
+  //   path: '/terms-conditions',
+  //   name: 'TermsConditions',
+  //   component: TermsConditions
+  // },
+  // {
+  //   path: '/trains',
+  //   name: 'ChinaMainlandTrains',
+  //   component: ChinaMainlandTrains
+  // },
+  // {
+  //   path: '/hongkongtrains',
+  //   name: 'HongKongTrains',
+  //   component: HongKongTrains
+  // },
+  // {
+  //   path: '/internationaltrains',
+  //   name: 'InternationalTrains',
+  //   component: InternationalTrains
+  // },
+  // {
+  //   path: '/flights',
+  //   name: 'Flights',
+  //   component: Flights
+  // },
+  // {
+  //   path: '/category/china_train_guide',
+  //   name: 'ChinaTrainGuide',
+  //   component: ChinaTrainGuide
+  // },
+  // {
+  //   path: '/category/booking-guide',
+  //   name: 'BookingGuide',
+  //   component: BookingGuide
+  // },
  
   // 404 catch-all route
   {

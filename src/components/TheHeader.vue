@@ -51,6 +51,7 @@
 
             <el-menu-item index="/contact-us">CONTACT US</el-menu-item>
             <el-menu-item index="/orders" class="my-orders">ORDERS</el-menu-item>
+            <el-menu-item index="/faq">FAQ</el-menu-item>
           </template>
         </el-menu>
         <div class="user-actions">

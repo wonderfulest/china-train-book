@@ -123,7 +123,7 @@
                     <div class="dialog-seat-info">
                       <div class="dialog-seat-type">{{ seat.type }}</div>
                       <div class="dialog-seat-amenities">
-                        <img v-for="amenity in seat.amenities" :key="amenity" :src="`/src/assets/amenities/${amenity}.png`" :alt="amenity" class="dialog-amenity-icon" />
+                        <img v-for="amenity in seat.amenities" :key="amenity" :src="`/assets/amenities/${amenity}.png`" :alt="amenity" class="dialog-amenity-icon" />
                       </div>
                     </div>
 
@@ -250,19 +250,19 @@ watch(
 
 // Mapping of seat types to image paths
 const seatImageMap = {
-  "Business Class": ["/src/assets/seats/CHR_business_01.png", "/src/assets/seats/CHR_business_02.png"],
-  "First Class": ["/src/assets/seats/CHR-1st-01.png", "/src/assets/seats/CHR-1st-02.png"],
-  "Second Class": ["/src/assets/seats/CHR-2st-01.png"],
+  "Business Class": ["/assets/seats/CHR_business_01.png", "/assets/seats/CHR_business_02.png"],
+  "First Class": ["/assets/seats/CHR-1st-01.png", "/assets/seats/CHR-1st-02.png"],
+  "Second Class": ["/assets/seats/CHR-2st-01.png"],
 };
 
 // Computed property to get the current seat image
 const selectedSeatImage = computed(() => {
   if (!selectedTrain.value || !selectedTrain.value.seats || selectedTrain.value.seats.length === 0) {
-    return "/src/assets/seats/CHR_business_01.png"; // Default image
+    return "/assets/seats/CHR_business_01.png"; // Default image
   }
 
   const seat = selectedTrain.value.seats[selectedSeatIndex.value];
-  const images = seatImageMap[seat.type] || ["/src/assets/seats/CHR_business_01.png"];
+  const images = seatImageMap[seat.type] || ["/assets/seats/CHR_business_01.png"];
   return images[currentImageIndex.value % images.length];
 });
 

@@ -20,7 +20,7 @@
           <ul class="contact-info">
             <li>
               <el-icon><Location /></el-icon>
-              <span>Harju maakond, Tallinn, Kesklinna linnaosa, Ahtri tn 12, 15551, 爱沙尼亚</span>
+              <span>Harju maakond, Tallinn, Kesklinna linnaosa, Ahtri tn 12, 15551, Estonia</span>
             </li>
             <li>
               <el-icon><Message /></el-icon>
