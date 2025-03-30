@@ -16,10 +16,11 @@
 
 <script setup>
 import { onMounted } from 'vue'
+import { PAYPAL_CONFIG } from '@/config/appConfig'
 
 onMounted(() => {
   const script = document.createElement('script')
-  script.src = 'https://www.paypal.com/sdk/js?client-id=AX7B_5LTYnNCzBwVQVKMiSrps_zHH_20Krjk2La-VI0gElc7FcPyP6xdZyiogrscq8qsb2Z3i5etwskp&currency=USD'
+  script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CONFIG.clientId}&currency=${PAYPAL_CONFIG.currency}`
   script.async = true
   document.head.appendChild(script)
 })

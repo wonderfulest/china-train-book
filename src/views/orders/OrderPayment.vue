@@ -199,7 +199,8 @@ const totalAmount = computed(() => {
   if (orderData.value.contact.refundableOption === 'yes') {
     refundableFee = Math.ceil(seatPrice * 0.1)
   }
-  return seatFee + seatPrice + refundableFee
+  return 1
+  // return seatFee + seatPrice + refundableFee
 })
 
 // 订单ID
