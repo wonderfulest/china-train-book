@@ -19,7 +19,11 @@
   <!-- 搜索卡片弹出层 -->
   <div v-if="showSearchCard" class="search-card-overlay" @click="showSearchCard = false">
     <div class="search-card-container" @click.stop>
-      <SearchCard @search="handleSearchCardSubmit" width="100%" height="auto" />
+      <SearchCard 
+        @timetable="handleSearchCardSubmit" 
+        width="100%" 
+        height="auto" 
+      />
     </div>
   </div>
   <!-- 搜索结果 -->
@@ -435,76 +439,6 @@ const processTrainData = (trainsData) => {
   });
 };
 
-// 搜索列车
-const searchTrains = async () => {
-  if (!fromStation.value || !toStation.value || !date.value) {
-    ElMessage.warning("Please fill in all search fields");
-    return;
-  }
-
-  loading.value = true;
-  try {
-    // 使用新的API接口
-    const bookingStore = useBookingStore();
-    const orderId = bookingStore.orderId;
-    const response = await getOrderTimetable(orderId, {
-      date: format(date.value, "yyyy-MM-dd"),
-      from: fromStation.value.stationCode,
-      to: toStation.value.stationCode,
-      isStudent: false,
-    });
-    // 转换API响应以匹配UI格式
-    trains.value = response.data.trains.map((train) => {
-      // 处理座位信息
-      const seats = [];
-      if (train.swzPrice) {
-        seats.push({
-          type: "Business Class",
-          price: train.swzPrice,
-          status: train.swzNum === "有" ? "Available" : train.swzNum === "0" ? "Sold out" : `${train.swzNum} left`,
-          amenities: ["wifi", "power", "tv", "meal"],
-        });
-      }
-      if (train.ydzPrice) {
-        seats.push({
-          type: "First Class",
-          price: train.ydzPrice,
-          status: train.ydzNum === "有" ? "Available" : train.ydzNum === "0" ? "Sold out" : `${train.ydzNum} left`,
-          amenities: ["wifi", "power"],
-        });
-      }
-      if (train.edzPrice) {
-        seats.push({
-          type: "Second Class",
-          price: train.edzPrice,
-          status: train.edzNum === "有" ? "Available" : train.edzNum === "0" ? "Sold out" : `${train.edzNum} left`,
-          amenities: ["wifi", "power"],
-        });
-      }
-
-      return {
-        id: train.trainNo,
-        number: train.trainCode,
-        type: train.trainType === "G" ? "High-speed G" : train.trainType === "D" ? "High-speed D" : "Normal K",
-        fromStation: train.fromStation,
-        toStation: train.toStation,
-        fromDate: train.fromDate,
-        fromTime: train.fromTime,
-        toTime: train.toTime,
-        runTime: train.runTime,
-        expanded: false,
-        canBook: train.canBook,
-        seats: seats,
-        minPrice: seats.length > 0 ? Math.min(...seats.map((s) => s.price)) : null,
-      };
-    });
-  } catch (error) {
-    console.error("Error fetching trains:", error);
-    ElMessage.error("Failed to fetch train schedules. Please try again.");
-  } finally {
-    loading.value = false;
-  }
-};
 
 // 展开列车详情
 const expandDetails = (train, event) => {
@@ -619,13 +553,11 @@ const submitTrainSeat = async (train, seat) => {
 };
 
 const handleSearchCardSubmit = (searchParams) => {
-  console.log("searchParams", searchParams)
-  fromStation.value = searchParams.from;
-  toStation.value = searchParams.to;
-  date.value = searchParams.date;
-  showSearchCard.value = false;
-  searchTrains();
-};
+  // 隐藏搜索卡片
+  showSearchCard.value = false
+  // 跳转到时刻表页面
+  window.location.href = `/trains/order/${searchParams.orderId}/timetable`
+}
 </script>
 
 <style scoped>

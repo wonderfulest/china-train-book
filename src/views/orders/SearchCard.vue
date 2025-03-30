@@ -117,7 +117,7 @@ import { createOrderSearch } from '@/api/modules/orders'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
-const emit = defineEmits(['search'])
+const emit = defineEmits(['timetable'])
 
 const cityStore = useCityStore()
 const { allCities, hotCities } = storeToRefs(cityStore)
@@ -181,6 +181,7 @@ const handleSearch = async () => {
   }
 
   try {
+   
     // 调用订单搜索接口
     const response = await createOrderSearch({
       from: fromStation.value.stationCode,
@@ -201,9 +202,13 @@ const handleSearch = async () => {
         date: date.value
       })
 
-      console.log("response.data.uuid", response.data.uuid)
-      // 跳转到时刻表页面
-      router.push(`/trains/order/${response.data.uuid}/timetable`)
+       // 先触发搜索事件，让父组件可以隐藏搜索框
+      emit('timetable', {
+        orderId: response.data.uuid
+      })
+
+
+   
     } else {
       ElMessage.error('搜索失败，请稍后重试')
     }

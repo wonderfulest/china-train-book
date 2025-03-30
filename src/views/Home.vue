@@ -5,7 +5,7 @@
         <h1>Take the Train. It's More Convenient and It's Better for Our Planet</h1>
       </div>
       <div class="search-container">
-        <SearchCard />
+        <SearchCard   @timetable="handleSearchCardSubmit" />
       </div>
     </section>
     <section class="benefits-section">
@@ -48,6 +48,9 @@ const date = ref(new Date().toISOString().split('T')[0])
 const fromStation = ref(null)
 const toStation = ref(null)
 
+const handleSearchCardSubmit = (searchParams) => {
+  window.location.href = `/trains/order/${searchParams.orderId}/timetable`
+}
 onMounted(async () => {
   await cityStore.initializeCityData()
 })
