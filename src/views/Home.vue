@@ -1,15 +1,23 @@
 <template>
   <div class="home">
-    <section class="hero-section" :style="{ backgroundImage: 'url(/assets/high-speed-train.jpeg)' }">
+    <section class="hero-section" :style="{ backgroundImage: `url(/assets/heros/${currentHero})` }">
       <div class="hero-content">
-        <div class="slogan-container">
-          <transition name="fade" mode="out-in">
-            <h1 :key="currentSlogan" class="slogan">{{ slogans[currentIndex] }}</h1>
-          </transition>
+        <transition name="fade" mode="out-in">
+          <h1 :key="currentSlogan" class="slogan">{{ slogans[currentSloganIndex] }}</h1>
+        </transition>
+        <!-- 搜索卡片 -->
+        <div class="search-card-wrapper">
+          <SearchCard />
         </div>
       </div>
-      <div class="search-container">
-        <SearchCard   @timetable="handleSearchCardSubmit" />
+      
+      <div class="hero-indicators">
+        <span 
+          v-for="(_, index) in heroImages" 
+          :key="index"
+          :class="['indicator', { active: index === currentHeroIndex }]"
+          @click="setHero(index)"
+        ></span>
       </div>
     </section>
     <section class="benefits-section">
@@ -46,11 +54,23 @@ import { useCityStore } from '@/stores/city'
 const router = useRouter()
 const cityStore = useCityStore()
 
-const from = ref('')
-const to = ref('')
+
 const date = ref(new Date().toISOString().split('T')[0])
 const fromStation = ref(null)
 const toStation = ref(null)
+
+// 英雄图片列表
+const heroImages = [
+  '01.jpeg',
+  '02.png',
+  '03.jpeg',
+  '04.jpeg',
+  '05.jpeg'
+]
+
+const currentHeroIndex = ref(0)
+const currentHero = ref(heroImages[0])
+const heroTimer = ref(null)
 
 const slogans = [
   "Experience China by Rail - Your Journey Begins Here",
@@ -65,8 +85,8 @@ const slogans = [
   "Sustainable Travel for a Better Tomorrow - Choose Trains"
 ]
 
-const currentIndex = ref(0)
-const timer = ref(null)
+const currentSloganIndex = ref(0)
+const sloganTimer = ref(null)
 
 const handleSearchCardSubmit = (searchParams) => {
   window.location.href = `/trains/order/${searchParams.orderId}/timetable`
@@ -74,17 +94,35 @@ const handleSearchCardSubmit = (searchParams) => {
 
 onMounted(async () => {
   await cityStore.initializeCityData()
-  timer.value = setInterval(rotateSlogan, 5000) // 每5秒切换一次
+  // 启动图片轮播
+  heroTimer.value = setInterval(rotateHero, 8000) // 每8秒切换一次图片
+  // 启动标语轮播
+  sloganTimer.value = setInterval(rotateSlogan, 5000) // 每5秒切换一次标语
 })
 
 onUnmounted(() => {
-  if (timer.value) {
-    clearInterval(timer.value)
-  }
+  // 清理定时器
+  if (heroTimer.value) clearInterval(heroTimer.value)
+  if (sloganTimer.value) clearInterval(sloganTimer.value)
 })
 
+const rotateHero = () => {
+  currentHeroIndex.value = (currentHeroIndex.value + 1) % heroImages.length
+  currentHero.value = heroImages[currentHeroIndex.value]
+}
+
+const setHero = (index) => {
+  currentHeroIndex.value = index
+  currentHero.value = heroImages[index]
+  // 重置定时器
+  if (heroTimer.value) {
+    clearInterval(heroTimer.value)
+    heroTimer.value = setInterval(rotateHero, 8000)
+  }
+}
+
 const rotateSlogan = () => {
-  currentIndex.value = (currentIndex.value + 1) % slogans.length
+  currentSloganIndex.value = (currentSloganIndex.value + 1) % slogans.length
 }
 
 const querySearch = async (queryString, cb) => {
@@ -111,55 +149,55 @@ const handleSearch = () => {
 }
 
 .hero-section {
-  min-height: 42vh; 
-  width: 100%;
+  position: relative;
+  height: 600px;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-
-.hero-section::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.8));
+  transition: background-image 1s ease-in-out;
 }
 
 .hero-content {
   position: relative;
-  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   text-align: center;
-  max-width: 900px;
-  padding: 0 20px;
-  margin-bottom: 30px;
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  padding: 20px;
 }
 
-.hero-content h1 {
-  color: var(--text-color-light);
-  font-size: 2.8rem;
-  font-weight: 700;
-  margin-bottom: 30px;
-  line-height: 1.2;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+.hero-indicators {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
 }
 
-.search-container {
+.indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.indicator.active {
+  background: white;
+  transform: scale(1.2);
+}
+
+.search-card-wrapper {
   width: 100%;
   max-width: 1000px;
-  position: relative;
-  z-index: 1;
-  padding: 24px;
-  margin-top: 0;
-  background-color: transparent;
-  border-radius: 8px;
-  --search-bg-color: rgba(255, 255, 255, var(--transparency-light));
-  --search-box-shadow: var(--shadow-medium);
+  margin: 0 auto;
+  z-index: 2; /* 确保搜索卡片在最上层 */
 }
 
 .benefits-section {
@@ -222,37 +260,29 @@ const handleSearch = () => {
 
 @media (max-width: 768px) {
   .hero-section {
-    min-height: 50vh;
-    padding: 60px 0;
+    height: auto;
+    min-height: 500px;
   }
-  
-  .hero-content h1 {
-    font-size: 2rem;
-  }
-  
-  .benefits-container {
-    flex-direction: column;
-  }
-  
-  .search-container {
-    margin-top: 0;
-  }
-}
 
-.slogan-container {
-  height: 60px; /* 固定高度避免切换时的跳动 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  .hero-content {
+    padding: 40px 10px;
+  }
+
+  .slogan {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+  }
+
+  .search-card-wrapper {
+    width: 95%;
+  }
 }
 
 .slogan {
-  text-align: center;
-  font-size: 2rem;
+  margin-bottom: 40px; /* 为搜索卡片留出空间 */
+  font-size: 2.5rem;
   font-weight: bold;
-  color: #333;
-  margin: 0;
-  padding: 0 20px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* 淡入淡出效果 */
@@ -278,3 +308,4 @@ const handleSearch = () => {
   }
 }
 </style>
+

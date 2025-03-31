@@ -387,7 +387,7 @@ watch(() => props.height, (newVal) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: var(--bg-color-grey, #f8f8f8);
+  background-color: rgba(255, 255, 255, 0.95);
   border-radius: 8px;
   padding: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -404,11 +404,14 @@ watch(() => props.height, (newVal) => {
   font-size: 24px;
   font-weight: bold;
   line-height: 1;
+  color: #333;
+  text-shadow: none;
 }
 
 .date-month {
   font-size: 14px;
-  color: var(--text-color-grey);
+  color: #666;
+  text-shadow: none;
 }
 
 /* 城市选择区域 */
