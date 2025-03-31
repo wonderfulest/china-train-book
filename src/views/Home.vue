@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <section class="hero-section" :style="{ backgroundImage: 'url(/src/assets/high-speed-train.jpg)' }">
+    <section class="hero-section" :style="{ backgroundImage: 'url(/assets/high-speed-train.jpeg)' }">
       <div class="hero-content">
         <div class="slogan-container">
           <transition name="fade" mode="out-in">
