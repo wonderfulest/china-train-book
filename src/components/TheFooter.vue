@@ -24,7 +24,7 @@
             </li>
             <li>
               <el-icon><Message /></el-icon>
-              <span>289869876@qq.com</span>
+              <span>service@chinatrainbook.com</span>
             </li>
             <!-- <li>
               <el-icon><Phone /></el-icon>

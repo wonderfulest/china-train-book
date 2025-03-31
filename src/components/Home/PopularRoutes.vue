@@ -42,15 +42,7 @@ const popularRoutes = [
     to: 'Shanghai',
     duration: '4h 28m',
     price: 553,
-    image: '/src/assets/routes/beijing-shanghai.jpg'
-  },
-  {
-    id: 2,
-    from: 'Guangzhou',
-    to: 'Shenzhen',
-    duration: '30m',
-    price: 75,
-    image: '/src/assets/routes/guangzhou-shenzhen.jpg'
+    image: '/assets/routes/beijing.jpeg'
   },
   {
     id: 3,
@@ -58,7 +50,7 @@ const popularRoutes = [
     to: 'Hangzhou',
     duration: '45m',
     price: 73,
-    image: '/src/assets/routes/shanghai-hangzhou.jpg'
+    image: '/assets/routes/shanghai.jpg'
   },
   {
     id: 4,
@@ -66,7 +58,7 @@ const popularRoutes = [
     to: 'Xian',
     duration: '5h 35m',
     price: 515,
-    image: '/src/assets/routes/beijing-xian.jpg'
+    image: '/assets/routes/xian.jpeg'
   }
 ]
 </script>
