@@ -4,10 +4,21 @@ export const PAYPAL_CONFIG = {
   currency: 'USD'
 }
 
-// 其他应用配置
-export const APP_CONFIG = {
-  // 可以添加其他配置项
-  socialMedia: {
-    facebook: 'https://www.facebook.com/profile.php?id=100091971705649'
+// 社交媒体配置
+export const SOCIAL_MEDIA = {
+  // whatsapp: {
+  //   url: 'https://wa.me/your_whatsapp_number',
+  //   icon: 'mdi:whatsapp',
+  //   name: 'WhatsApp'
+  // },
+  instagram: {
+    url: 'https://www.instagram.com/chinatrainbook/',
+    icon: 'mdi:instagram',
+    name: 'Instagram'
+  },
+  facebook: {
+    url: 'https://www.facebook.com/profile.php?id=61574944138155',
+    icon: 'mdi:facebook',
+    name: 'Facebook'
   }
 }

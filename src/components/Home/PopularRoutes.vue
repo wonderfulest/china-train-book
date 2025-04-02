@@ -20,7 +20,7 @@
                   </span>
                   <span class="route-price">
                     <el-icon><Tickets /></el-icon>
-                    From ¥{{ route.price }}
+                    From ${{ route.price }}
                   </span>
                 </div>
               </div>
@@ -41,7 +41,7 @@ const popularRoutes = [
     from: 'Beijing',
     to: 'Shanghai',
     duration: '4h 28m',
-    price: 553,
+    price: 75,
     image: '/assets/routes/beijing.jpeg'
   },
   {
@@ -49,7 +49,7 @@ const popularRoutes = [
     from: 'Shanghai',
     to: 'Hangzhou',
     duration: '45m',
-    price: 73,
+    price: 20,
     image: '/assets/routes/shanghai.jpg'
   },
   {
@@ -57,7 +57,7 @@ const popularRoutes = [
     from: 'Beijing',
     to: 'Xian',
     duration: '5h 35m',
-    price: 515,
+    price: 83,
     image: '/assets/routes/xian.jpeg'
   }
 ]

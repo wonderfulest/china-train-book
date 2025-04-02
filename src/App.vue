@@ -11,12 +11,14 @@
     </el-main>
 
     <TheFooter />
+    <SocialBar />
   </el-container>
 </template>
 
 <script setup>
 import { onMounted } from 'vue'
 import { PAYPAL_CONFIG } from '@/config/appConfig'
+import SocialBar from '@/components/SocialBar.vue'
 
 onMounted(() => {
   const script = document.createElement('script')

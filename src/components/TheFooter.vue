@@ -35,11 +35,12 @@
         <div class="footer-section">
           <h3>Follow Us</h3>
           <div class="social-links">
-            <!-- <a href="#" class="social-link"><el-icon><Share /></el-icon></a>
-            <a href="#" class="social-link"><el-icon><Connection /></el-icon></a>
-            <a href="#" class="social-link"><el-icon><ChatDotRound /></el-icon></a> -->
-            <a :href="APP_CONFIG.socialMedia.facebook" target="_blank" class="social-link">
-              <Icon icon="ic:baseline-facebook" width="24" height="24"  style="color: #ffffff" />
+            <a v-for="(social, key) in SOCIAL_MEDIA" 
+               :key="key"
+               :href="social.url" 
+               target="_blank" 
+               class="social-link">
+              <Icon :icon="social.icon" width="24" height="24" style="color: #ffffff" />
             </a>
           </div>
         </div>
@@ -65,7 +66,7 @@
 
 <script setup>
 import { Location, Message, Phone, Share, Connection, ChatDotRound } from '@element-plus/icons-vue'
-import { APP_CONFIG } from '@/config/appConfig'
+import { APP_CONFIG, SOCIAL_MEDIA } from '@/config/appConfig'
 import { Icon } from '@iconify/vue'
 </script>
 

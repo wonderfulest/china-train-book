@@ -40,6 +40,19 @@
     </section>
     <FeatureSection />
     <PopularRoutes />
+    <Transition name="fade">
+      <div v-if="showTips" class="contact-tips">
+        <div class="tip-item">
+          <Icon icon="mdi:message" width="20" height="20" />
+          <span>Need immediate help? Chat with us in real-time</span>
+        </div>
+        <div class="tip-item">
+          <Icon icon="mdi:share-variant" width="20" height="20" />
+          <span>Follow us on social media for latest updates</span>
+        </div>
+        <div class="tip-arrow"></div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -88,6 +101,9 @@ const slogans = [
 const currentSloganIndex = ref(0)
 const sloganTimer = ref(null)
 
+const showTips = ref(false)
+let tipTimer = null
+
 const handleSearchCardSubmit = (searchParams) => {
   window.location.href = `/trains/order/${searchParams.orderId}/timetable`
 }
@@ -98,12 +114,15 @@ onMounted(async () => {
   heroTimer.value = setInterval(rotateHero, 8000) // 每8秒切换一次图片
   // 启动标语轮播
   sloganTimer.value = setInterval(rotateSlogan, 5000) // 每5秒切换一次标语
+  // 延迟 1 秒后显示提示
+  setTimeout(showContactTips, 1000)
 })
 
 onUnmounted(() => {
   // 清理定时器
   if (heroTimer.value) clearInterval(heroTimer.value)
   if (sloganTimer.value) clearInterval(sloganTimer.value)
+  if (tipTimer) clearTimeout(tipTimer)
 })
 
 const rotateHero = () => {
@@ -139,6 +158,16 @@ const handleSearch = () => {
       date: date.value
     }
   })
+}
+
+// 显示提示
+const showContactTips = () => {
+  showTips.value = true
+  // 3秒后自动隐藏
+  if (tipTimer) clearTimeout(tipTimer)
+  tipTimer = setTimeout(() => {
+    showTips.value = false
+  }, 3000)
 }
 </script>
 
@@ -305,6 +334,66 @@ const handleSearch = () => {
   
   .slogan-container {
     height: 80px;
+  }
+}
+
+.contact-tips {
+  position: fixed;
+  right: 85px;
+  bottom: 120px;
+  background: rgba(255, 255, 255, 0.98);
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  max-width: 250px;
+  z-index: 999;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.tip-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  color: #333;
+}
+
+.tip-item:first-child {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* 添加箭头 */
+.tip-arrow {
+  position: absolute;
+  right: -6px;
+  bottom: 20px;
+  width: 12px;
+  height: 12px;
+  background: white;
+  transform: rotate(45deg);
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* 淡入淡出动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+@media (max-width: 768px) {
+  .contact-tips {
+    right: 70px;
+    bottom: 140px;
+    max-width: 200px;
+    font-size: 12px;
   }
 }
 </style>
